@@ -2,7 +2,7 @@
 
 use clap::Parser;
 use std::fs;
-use crate::{parse_scripture_reference, generate_url, generate_url_with_query, process_text_for_scripture_references};
+use crate::{parse_scripture_reference, generate_url, process_text_for_scripture_references};
 
 /// Custom error type for CLI operations
 pub type CliError = Box<dyn std::error::Error>;
@@ -23,10 +23,6 @@ pub struct Cli {
     /// Process file and convert scripture references to markdown links
     #[arg(short, long, group = "input")]
     pub file: Option<String>,
-
-    /// Optional search query to append to URLs (e.g., "creation", "light")
-    #[arg(short, long)]
-    pub query: Option<String>,
 }
 
 impl Cli {
@@ -36,11 +32,7 @@ impl Cli {
             // Original single reference mode
             match parse_scripture_reference(&reference) {
                 Ok(scripture) => {
-                    let url = if let Some(query) = self.query.as_deref() {
-                        generate_url_with_query(&scripture, Some(query))
-                    } else {
-                        generate_url(&scripture)
-                    };
+                    let url = generate_url(&scripture);
                     println!("{}", url);
                 }
                 Err(error) => {

@@ -1,5 +1,5 @@
 // Scripture Links Web Application
-import init, { parse_reference, parse_reference_with_query, process_text, get_supported_formats } from './pkg/scripture_links.js';
+import init, { parse_reference, process_text, get_supported_formats } from './pkg/scripture_links.js';
 
 // Global state
 let wasmModule = null;
@@ -52,14 +52,7 @@ function convertSingleReference() {
     try {
         setLoading(true);
         
-        // Check for query parameter (from URL or manual input)
-        const urlQueryParam = input.dataset.query;
-        const manualQuery = document.getElementById('search-query').value.trim();
-        const queryParam = manualQuery || urlQueryParam;
-        
-        const result = queryParam ? 
-            parse_reference_with_query(reference, queryParam) : 
-            parse_reference(reference);
+        const result = parse_reference(reference);
         
         if (result.success) {
             const url = result.result;
@@ -297,17 +290,11 @@ function handleKeyboardShortcuts(event) {
 function handleUrlParameters() {
     const urlParams = new URLSearchParams(window.location.search);
     const ref = urlParams.get('ref');
-    const query = urlParams.get('query');
     
     if (ref) {
         // Auto-fill the reference input
         const referenceInput = document.getElementById('single-reference');
         referenceInput.value = ref;
-        
-        // Store query for later use
-        if (query) {
-            referenceInput.dataset.query = query;
-        }
         
         // Auto-convert after WASM loads
         setTimeout(() => {
@@ -349,12 +336,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // Add enter key support for search query input
-    document.getElementById('search-query').addEventListener('keypress', (event) => {
-        if (event.key === 'Enter') {
-            convertSingleReference();
-        }
-    });
     
     // Add event listeners for copy/open buttons
     document.getElementById('copy-single-btn').addEventListener('click', () => {
