@@ -32,6 +32,8 @@ jobs:
 
       - name: Version packages with Changesets
         id: changesets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if npm run release; then
             echo "published=true" >> $GITHUB_OUTPUT
