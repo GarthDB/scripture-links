@@ -35,12 +35,12 @@ pub fn process_text_for_scripture_references(text: &str) -> String {
     }
     
     // Sort by length (descending) to match longer book names first
-    // This prevents "1 Ne." from matching before "1 Nephi"
+    // This prevents "1 Ne" from matching before "1 Nephi"
     all_book_patterns.sort_by_key(|b| std::cmp::Reverse(b.len()));
     
-    // Create the master regex pattern
+    // Create the master regex pattern with optional periods
     let book_pattern = all_book_patterns.join("|");
-    let pattern = format!(r"\b({})\s*(\d+):(\d+)(?:-(\d+))?\b", book_pattern);
+    let pattern = format!(r"\b({})\s*\.?\s*(\d+):(\d+)(?:-(\d+))?\b", book_pattern);
     let re = Regex::new(&pattern).unwrap();
     
     let mut result = text.to_string();

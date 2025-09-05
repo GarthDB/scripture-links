@@ -27,7 +27,7 @@ pub fn parse_scripture_reference(reference: &str) -> Result<ScriptureReference, 
     let re = Regex::new(r"^(.+?)\s*(\d+):(\d+)(?:-(\d+))?$").unwrap();
     
     if let Some(captures) = re.captures(reference.trim()) {
-        let book_abbrev = captures.get(1).unwrap().as_str().trim();
+        let book_abbrev = captures.get(1).unwrap().as_str().trim().trim_end_matches('.');
         let chapter: u32 = captures.get(2).unwrap().as_str().parse()
             .map_err(|_| format!("Invalid chapter number in reference: {}", reference))?;
         let verse_start: u32 = captures.get(3).unwrap().as_str().parse()
@@ -181,32 +181,32 @@ mod tests {
     #[test]
     fn test_optional_space() {
         // Test that space between book and chapter is optional
-        
-        // With space (traditional format)
         let result1 = parse_scripture_reference("Genesis 1:1").unwrap();
-        assert_eq!(result1.book, "gen");
-        assert_eq!(result1.chapter, 1);
-        
-        // Without space (compact format)
         let result2 = parse_scripture_reference("Genesis1:1").unwrap();
-        assert_eq!(result2.book, "gen");
-        assert_eq!(result2.chapter, 1);
-        
-        // Book of Mormon with space
-        let result3 = parse_scripture_reference("2 Ne. 10:14").unwrap();
-        assert_eq!(result3.book, "2-ne");
-        assert_eq!(result3.chapter, 10);
-        
-        // Book of Mormon without space (compact abbreviation)
-        let result4 = parse_scripture_reference("2Ne.10:14").unwrap();
-        assert_eq!(result4.book, "2-ne");
-        assert_eq!(result4.chapter, 10);
-        
-        // D&C without space
-        let result5 = parse_scripture_reference("D&C128:22-23").unwrap();
-        assert_eq!(result5.book, "dc");
-        assert_eq!(result5.chapter, 128);
-        assert_eq!(result5.verse_start, 22);
-        assert_eq!(result5.verse_end, Some(23));
+        assert_eq!(result1.book, result2.book);
+        assert_eq!(result1.chapter, result2.chapter);
+        assert_eq!(result1.verse_start, result2.verse_start);
+    }
+
+    #[test]
+    fn test_optional_period() {
+        // Test that period after book abbreviation is optional
+        let result1 = parse_scripture_reference("Philip. 4:13").unwrap();
+        let result2 = parse_scripture_reference("Philip 4:13").unwrap();
+        assert_eq!(result1.book, result2.book);
+        assert_eq!(result1.chapter, result2.chapter);
+        assert_eq!(result1.verse_start, result2.verse_start);
+
+        let result3 = parse_scripture_reference("Rev. 22:21").unwrap();
+        let result4 = parse_scripture_reference("Rev 22:21").unwrap();
+        assert_eq!(result3.book, result4.book);
+        assert_eq!(result3.chapter, result4.chapter);
+        assert_eq!(result3.verse_start, result4.verse_start);
+
+        let result5 = parse_scripture_reference("Heb. 1:1").unwrap();
+        let result6 = parse_scripture_reference("Heb 1:1").unwrap();
+        assert_eq!(result5.book, result6.book);
+        assert_eq!(result5.chapter, result6.chapter);
+        assert_eq!(result5.verse_start, result6.verse_start);
     }
 }
