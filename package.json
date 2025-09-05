@@ -5,7 +5,7 @@
   "scripts": {
     "changeset": "changeset",
     "version-packages": "changeset version && node scripts/sync-cargo-version.js",
-    "release": "npm run version-packages && git add . && git commit -m 'Version packages' && git push"
+    "release": "changeset version && node scripts/sync-cargo-version.js"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.6",
