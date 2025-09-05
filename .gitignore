@@ -1,1 +1,11 @@
 /target
+
+# Node.js (for Changesets)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Generated release artifacts
+*.tar.gz
+*.zip
