@@ -10,6 +10,9 @@ pub mod text_processor;
 pub mod types;
 pub mod url_generator;
 
+#[cfg(target_arch = "wasm32")]
+pub mod wasm;
+
 // Re-export the main types and functions for easy use
 pub use types::{ScriptureReference, StandardWork};
 pub use parser::parse_scripture_reference;

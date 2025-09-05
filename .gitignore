@@ -9,3 +9,10 @@ yarn-error.log*
 # Generated release artifacts
 *.tar.gz
 *.zip
+
+# WASM build artifacts
+/pkg/
+/web/pkg/
+
+# Local web server
+.DS_Store
