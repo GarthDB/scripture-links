@@ -1,0 +1,165 @@
+//! JSON output structures for machine-readable responses
+
+use serde::{Deserialize, Serialize};
+use crate::types::ScriptureReference;
+
+/// Success response for single reference processing
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SingleReferenceResponse {
+    pub success: bool,
+    pub input: String,
+    pub parsed: Option<ScriptureReference>,
+    pub url: Option<String>,
+    pub error: Option<ErrorInfo>,
+}
+
+/// Success response for batch processing
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BatchResponse {
+    pub success: bool,
+    pub total_processed: usize,
+    pub successful: usize,
+    pub failed: usize,
+    pub results: Vec<SingleReferenceResponse>,
+}
+
+/// Response for text processing
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TextProcessingResponse {
+    pub success: bool,
+    pub input_text: String,
+    pub output_text: String,
+    pub references_found: usize,
+    pub references: Vec<FoundReference>,
+}
+
+/// Information about a found reference in text
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FoundReference {
+    pub original_text: String,
+    pub parsed: Option<ScriptureReference>,
+    pub url: Option<String>,
+    pub position: Option<TextPosition>,
+}
+
+/// Position information for found references
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TextPosition {
+    pub start: usize,
+    pub end: usize,
+}
+
+/// Validation-only response
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ValidationResponse {
+    pub success: bool,
+    pub input: String,
+    pub valid: bool,
+    pub parsed: Option<ScriptureReference>,
+    pub error: Option<ErrorInfo>,
+}
+
+/// Structured error information
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ErrorInfo {
+    pub code: String,
+    pub message: String,
+    pub category: ErrorCategory,
+    pub suggestions: Option<Vec<String>>,
+}
+
+/// Error categories for programmatic handling
+#[derive(Debug, Serialize, Deserialize)]
+pub enum ErrorCategory {
+    InvalidFormat,
+    UnknownBook,
+    InvalidChapter,
+    InvalidVerse,
+    FileNotFound,
+    FileReadError,
+    ParseError,
+}
+
+impl ErrorInfo {
+    pub fn new(code: &str, message: &str, category: ErrorCategory) -> Self {
+        Self {
+            code: code.to_string(),
+            message: message.to_string(),
+            category,
+            suggestions: None,
+        }
+    }
+
+    pub fn with_suggestions(mut self, suggestions: Vec<String>) -> Self {
+        self.suggestions = Some(suggestions);
+        self
+    }
+}
+
+/// Helper function to create error responses
+pub fn create_error_response(input: &str, error_msg: &str) -> SingleReferenceResponse {
+    let (code, category) = categorize_error(error_msg);
+    
+    SingleReferenceResponse {
+        success: false,
+        input: input.to_string(),
+        parsed: None,
+        url: None,
+        error: Some(ErrorInfo::new(&code, error_msg, category)),
+    }
+}
+
+/// Categorize error messages for structured responses
+pub fn categorize_error(error_msg: &str) -> (String, ErrorCategory) {
+    if error_msg.contains("Invalid scripture reference format") {
+        ("INVALID_FORMAT".to_string(), ErrorCategory::InvalidFormat)
+    } else if error_msg.contains("Unknown book abbreviation") {
+        ("UNKNOWN_BOOK".to_string(), ErrorCategory::UnknownBook)
+    } else if error_msg.contains("Chapter") && error_msg.contains("does not exist") {
+        ("INVALID_CHAPTER".to_string(), ErrorCategory::InvalidChapter)
+    } else if error_msg.contains("Verse") && error_msg.contains("does not exist") {
+        ("INVALID_VERSE".to_string(), ErrorCategory::InvalidVerse)
+    } else {
+        ("PARSE_ERROR".to_string(), ErrorCategory::ParseError)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::{ScriptureReference, StandardWork};
+
+    #[test]
+    fn test_single_reference_response_serialization() {
+        let scripture = ScriptureReference {
+            book: "gen".to_string(),
+            chapter: 1,
+            verse_start: 1,
+            verse_end: None,
+            standard_work: StandardWork::OldTestament,
+        };
+
+        let response = SingleReferenceResponse {
+            success: true,
+            input: "Genesis 1:1".to_string(),
+            parsed: Some(scripture),
+            url: Some("https://example.com".to_string()),
+            error: None,
+        };
+
+        let json = serde_json::to_string(&response).unwrap();
+        assert!(json.contains("\"success\":true"));
+        assert!(json.contains("\"input\":\"Genesis 1:1\""));
+    }
+
+    #[test]
+    fn test_error_categorization() {
+        let (code, category) = categorize_error("Unknown book abbreviation: 'InvalidBook'");
+        assert_eq!(code, "UNKNOWN_BOOK");
+        assert!(matches!(category, ErrorCategory::UnknownBook));
+
+        let (code, category) = categorize_error("Invalid scripture reference format");
+        assert_eq!(code, "INVALID_FORMAT");
+        assert!(matches!(category, ErrorCategory::InvalidFormat));
+    }
+}

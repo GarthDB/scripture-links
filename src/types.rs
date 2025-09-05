@@ -1,7 +1,10 @@
+
 //! Core types used throughout the application
 
+use serde::{Deserialize, Serialize};
+
 /// Represents a parsed scripture reference
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ScriptureReference {
     pub book: String,
     pub chapter: u32,
@@ -11,7 +14,7 @@ pub struct ScriptureReference {
 }
 
 /// Standard works of LDS scripture
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum StandardWork {
     OldTestament,
     NewTestament,
