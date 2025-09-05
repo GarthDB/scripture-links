@@ -62,6 +62,9 @@ function convertSingleReference() {
             // Show action buttons
             document.getElementById('single-buttons').classList.remove('hidden');
             
+            // Update browser URL with normalized reference
+            updateBrowserUrl(reference);
+            
             // Update stats
             stats.referencesProcessed++;
             updateStats();
@@ -77,6 +80,8 @@ function convertSingleReference() {
             resultArea.className = 'result-area has-content error';
             // Hide action buttons on error
             document.getElementById('single-buttons').classList.add('hidden');
+            // Clear URL parameter on error
+            clearBrowserUrl();
             showError(error);
         }
         
@@ -86,6 +91,8 @@ function convertSingleReference() {
         resultArea.className = 'result-area has-content error';
         // Hide action buttons on error
         document.getElementById('single-buttons').classList.add('hidden');
+        // Clear URL parameter on error
+        clearBrowserUrl();
         showError('An unexpected error occurred');
     } finally {
         setLoading(false);
@@ -192,6 +199,34 @@ function openResult(resultElementId) {
     }
 }
 
+// Normalize reference for URL (remove periods and spaces)
+function normalizeReferenceForUrl(reference) {
+    return reference
+        .toLowerCase()
+        .replace(/\./g, '')  // Remove periods
+        .replace(/\s+/g, '') // Remove all spaces
+        .trim();
+}
+
+// Update browser URL with current reference
+function updateBrowserUrl(reference) {
+    const normalizedRef = normalizeReferenceForUrl(reference);
+    const newUrl = new URL(window.location);
+    newUrl.searchParams.set('ref', normalizedRef);
+    
+    // Update URL without reloading the page
+    window.history.replaceState({}, '', newUrl);
+}
+
+// Clear the ref parameter from browser URL
+function clearBrowserUrl() {
+    const newUrl = new URL(window.location);
+    newUrl.searchParams.delete('ref');
+    
+    // Update URL without reloading the page
+    window.history.replaceState({}, '', newUrl);
+}
+
 // Utility functions
 function setLoading(isLoading) {
     const buttons = document.querySelectorAll('button');
@@ -283,6 +318,8 @@ function handleKeyboardShortcuts(event) {
         document.querySelectorAll('.button-group').forEach(group => {
             group.classList.add('hidden');
         });
+        // Clear URL parameter
+        clearBrowserUrl();
     }
 }
 
