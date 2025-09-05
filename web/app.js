@@ -306,6 +306,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
+    // Add event listeners for copy/open buttons
+    document.getElementById('copy-single-btn').addEventListener('click', () => {
+        copyResult('single-result');
+    });
+    
+    document.getElementById('open-single-btn').addEventListener('click', () => {
+        openResult('single-result');
+    });
+    
+    document.getElementById('copy-text-btn').addEventListener('click', () => {
+        copyResult('text-result');
+    });
+    
     // Load stats from localStorage if available
     const savedStats = localStorage.getItem('scripture-links-stats');
     if (savedStats) {
@@ -316,6 +329,8 @@ document.addEventListener('DOMContentLoaded', () => {
             console.warn('Could not load saved stats:', e);
         }
     }
+    
+    // Note: Using event listeners instead of onclick handlers for better ES6 module compatibility
 });
 
 // Save stats to localStorage when the page unloads
@@ -323,11 +338,9 @@ window.addEventListener('beforeunload', () => {
     localStorage.setItem('scripture-links-stats', JSON.stringify(stats));
 });
 
-// Make functions available globally for onclick handlers
+// Make functions available globally for onclick handlers (still needed for main convert/process buttons)
 window.convertSingleReference = convertSingleReference;
 window.processText = processText;
-window.copyResult = copyResult;
-window.openResult = openResult;
 window.hideError = hideError;
 window.hideSuccess = hideSuccess;
 
