@@ -59,6 +59,9 @@ function convertSingleReference() {
             resultArea.textContent = url;
             resultArea.className = 'result-area has-content success';
             
+            // Show action buttons
+            document.getElementById('single-buttons').classList.remove('hidden');
+            
             // Update stats
             stats.referencesProcessed++;
             updateStats();
@@ -72,6 +75,8 @@ function convertSingleReference() {
             const error = result.error || 'Unknown error occurred';
             resultArea.textContent = `Error: ${error}`;
             resultArea.className = 'result-area has-content error';
+            // Hide action buttons on error
+            document.getElementById('single-buttons').classList.add('hidden');
             showError(error);
         }
         
@@ -79,6 +84,8 @@ function convertSingleReference() {
         console.error('Error converting reference:', error);
         resultArea.textContent = `Error: ${error.message}`;
         resultArea.className = 'result-area has-content error';
+        // Hide action buttons on error
+        document.getElementById('single-buttons').classList.add('hidden');
         showError('An unexpected error occurred');
     } finally {
         setLoading(false);
@@ -110,6 +117,9 @@ function processText() {
             resultArea.textContent = processedText;
             resultArea.className = 'result-area has-content success';
             
+            // Show action buttons
+            document.getElementById('text-buttons').classList.remove('hidden');
+            
             // Update stats
             stats.textBlocksProcessed++;
             
@@ -129,6 +139,8 @@ function processText() {
         } else {
             resultArea.textContent = 'No scripture references found in the text.';
             resultArea.className = 'result-area has-content';
+            // Hide action buttons when no references found
+            document.getElementById('text-buttons').classList.add('hidden');
             showInfo('No scripture references were found in the provided text.');
         }
         
@@ -136,9 +148,47 @@ function processText() {
         console.error('Error processing text:', error);
         resultArea.textContent = `Error: ${error.message}`;
         resultArea.className = 'result-area has-content error';
+        // Hide action buttons on error
+        document.getElementById('text-buttons').classList.add('hidden');
         showError('An unexpected error occurred while processing text');
     } finally {
         setLoading(false);
+    }
+}
+
+// Copy and open functions
+function copyResult(resultElementId) {
+    const resultElement = document.getElementById(resultElementId);
+    const text = resultElement.textContent.trim();
+    
+    if (!text) {
+        showError('No content to copy');
+        return;
+    }
+    
+    navigator.clipboard.writeText(text).then(() => {
+        showSuccess('Copied to clipboard!');
+    }).catch(err => {
+        console.error('Failed to copy text: ', err);
+        showError('Failed to copy to clipboard');
+    });
+}
+
+function openResult(resultElementId) {
+    const resultElement = document.getElementById(resultElementId);
+    const text = resultElement.textContent.trim();
+    
+    if (!text) {
+        showError('No URL to open');
+        return;
+    }
+    
+    // Check if it's a URL
+    if (text.startsWith('https://www.churchofjesuschrist.org')) {
+        window.open(text, '_blank', 'noopener,noreferrer');
+        showSuccess('Opened in new tab');
+    } else {
+        showError('Result is not a valid URL');
     }
 }
 
@@ -229,6 +279,10 @@ function handleKeyboardShortcuts(event) {
             area.textContent = '';
             area.className = 'result-area';
         });
+        // Hide all button groups
+        document.querySelectorAll('.button-group').forEach(group => {
+            group.classList.add('hidden');
+        });
     }
 }
 
@@ -272,6 +326,8 @@ window.addEventListener('beforeunload', () => {
 // Make functions available globally for onclick handlers
 window.convertSingleReference = convertSingleReference;
 window.processText = processText;
+window.copyResult = copyResult;
+window.openResult = openResult;
 window.hideError = hideError;
 window.hideSuccess = hideSuccess;
 

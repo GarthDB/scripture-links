@@ -181,6 +181,29 @@ button:disabled {
     transform: none;
 }
 
+button.secondary {
+    background-color: var(--bg-primary);
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+}
+
+button.secondary:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* Button groups */
+.button-group {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-sm);
+    justify-content: flex-end;
+}
+
+.button-group.hidden {
+    display: none;
+}
+
 /* Result areas */
 .result-area {
     min-height: 60px;

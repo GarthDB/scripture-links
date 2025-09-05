@@ -30,6 +30,10 @@
                     <button onclick="convertSingleReference()">Convert</button>
                 </div>
                 <div id="single-result" class="result-area"></div>
+                <div id="single-buttons" class="button-group hidden">
+                    <button onclick="copyResult('single-result')" class="secondary">📋 Copy URL</button>
+                    <button onclick="openResult('single-result')" class="secondary">🔗 Open Link</button>
+                </div>
             </div>
 
             <div class="tool-section">
@@ -44,6 +48,9 @@
                 </div>
                 <button onclick="processText()">Process Text</button>
                 <div id="text-result" class="result-area"></div>
+                <div id="text-buttons" class="button-group hidden">
+                    <button onclick="copyResult('text-result')" class="secondary">📋 Copy Text</button>
+                </div>
             </div>
 
             <div class="info-section">

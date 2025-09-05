@@ -10,14 +10,21 @@ pub type AbbreviationMap = HashMap<&'static str, (&'static str, StandardWork)>;
 pub fn create_abbreviation_map() -> AbbreviationMap {
     let mut map = HashMap::new();
     
-    // Old Testament
+    // Old Testament - both with and without periods
     map.insert("Gen.", ("gen", StandardWork::OldTestament));
+    map.insert("Gen", ("gen", StandardWork::OldTestament));
     map.insert("Ex.", ("ex", StandardWork::OldTestament));
+    map.insert("Ex", ("ex", StandardWork::OldTestament));
     map.insert("Lev.", ("lev", StandardWork::OldTestament));
+    map.insert("Lev", ("lev", StandardWork::OldTestament));
     map.insert("Num.", ("num", StandardWork::OldTestament));
+    map.insert("Num", ("num", StandardWork::OldTestament));
     map.insert("Deut.", ("deut", StandardWork::OldTestament));
+    map.insert("Deut", ("deut", StandardWork::OldTestament));
     map.insert("Josh.", ("josh", StandardWork::OldTestament));
+    map.insert("Josh", ("josh", StandardWork::OldTestament));
     map.insert("Judg.", ("judg", StandardWork::OldTestament));
+    map.insert("Judg", ("judg", StandardWork::OldTestament));
     map.insert("Ruth", ("ruth", StandardWork::OldTestament));
     map.insert("1 Sam.", ("1-sam", StandardWork::OldTestament));
     map.insert("2 Sam.", ("2-sam", StandardWork::OldTestament));
@@ -30,12 +37,17 @@ pub fn create_abbreviation_map() -> AbbreviationMap {
     map.insert("Esth.", ("esth", StandardWork::OldTestament));
     map.insert("Job", ("job", StandardWork::OldTestament));
     map.insert("Ps.", ("ps", StandardWork::OldTestament));
+    map.insert("Ps", ("ps", StandardWork::OldTestament));
     map.insert("Prov.", ("prov", StandardWork::OldTestament));
+    map.insert("Prov", ("prov", StandardWork::OldTestament));
     map.insert("Eccl.", ("eccl", StandardWork::OldTestament));
     map.insert("Song", ("song", StandardWork::OldTestament));
     map.insert("Isa.", ("isa", StandardWork::OldTestament));
+    map.insert("Isa", ("isa", StandardWork::OldTestament));
     map.insert("Jer.", ("jer", StandardWork::OldTestament));
+    map.insert("Jer", ("jer", StandardWork::OldTestament));
     map.insert("Lam.", ("lam", StandardWork::OldTestament));
+    map.insert("Lam", ("lam", StandardWork::OldTestament));
     map.insert("Ezek.", ("ezek", StandardWork::OldTestament));
     map.insert("Dan.", ("dan", StandardWork::OldTestament));
     map.insert("Hosea", ("hosea", StandardWork::OldTestament));
@@ -53,15 +65,21 @@ pub fn create_abbreviation_map() -> AbbreviationMap {
 
     // New Testament
     map.insert("Matt.", ("matt", StandardWork::NewTestament));
+    map.insert("Matt", ("matt", StandardWork::NewTestament));
     map.insert("Mark", ("mark", StandardWork::NewTestament));
     map.insert("Luke", ("luke", StandardWork::NewTestament));
     map.insert("John", ("john", StandardWork::NewTestament));
     map.insert("Acts", ("acts", StandardWork::NewTestament));
     map.insert("Rom.", ("rom", StandardWork::NewTestament));
+    map.insert("Rom", ("rom", StandardWork::NewTestament));
     map.insert("1 Cor.", ("1-cor", StandardWork::NewTestament));
+    map.insert("1 Cor", ("1-cor", StandardWork::NewTestament));
     map.insert("2 Cor.", ("2-cor", StandardWork::NewTestament));
+    map.insert("2 Cor", ("2-cor", StandardWork::NewTestament));
     map.insert("Gal.", ("gal", StandardWork::NewTestament));
+    map.insert("Gal", ("gal", StandardWork::NewTestament));
     map.insert("Eph.", ("eph", StandardWork::NewTestament));
+    map.insert("Eph", ("eph", StandardWork::NewTestament));
     map.insert("Philip.", ("philip", StandardWork::NewTestament));
     map.insert("Col.", ("col", StandardWork::NewTestament));
     map.insert("1 Thes.", ("1-thes", StandardWork::NewTestament));
@@ -80,9 +98,11 @@ pub fn create_abbreviation_map() -> AbbreviationMap {
     map.insert("Jude", ("jude", StandardWork::NewTestament));
     map.insert("Rev.", ("rev", StandardWork::NewTestament));
 
-    // Book of Mormon - Official abbreviations
+    // Book of Mormon - Official abbreviations (with and without periods)
     map.insert("1 Ne.", ("1-ne", StandardWork::BookOfMormon));
+    map.insert("1 Ne", ("1-ne", StandardWork::BookOfMormon));
     map.insert("2 Ne.", ("2-ne", StandardWork::BookOfMormon));
+    map.insert("2 Ne", ("2-ne", StandardWork::BookOfMormon));
     map.insert("Jacob", ("jacob", StandardWork::BookOfMormon));
     map.insert("Enos", ("enos", StandardWork::BookOfMormon));
     map.insert("Jarom", ("jarom", StandardWork::BookOfMormon));
@@ -91,11 +111,16 @@ pub fn create_abbreviation_map() -> AbbreviationMap {
     map.insert("Mosiah", ("mosiah", StandardWork::BookOfMormon));
     map.insert("Alma", ("alma", StandardWork::BookOfMormon));
     map.insert("Hel.", ("hel", StandardWork::BookOfMormon));
+    map.insert("Hel", ("hel", StandardWork::BookOfMormon));
     map.insert("3 Ne.", ("3-ne", StandardWork::BookOfMormon));
+    map.insert("3 Ne", ("3-ne", StandardWork::BookOfMormon));
     map.insert("4 Ne.", ("4-ne", StandardWork::BookOfMormon));
+    map.insert("4 Ne", ("4-ne", StandardWork::BookOfMormon));
     map.insert("Morm.", ("morm", StandardWork::BookOfMormon));
+    map.insert("Morm", ("morm", StandardWork::BookOfMormon));
     map.insert("Ether", ("ether", StandardWork::BookOfMormon));
     map.insert("Moro.", ("moro", StandardWork::BookOfMormon));
+    map.insert("Moro", ("moro", StandardWork::BookOfMormon));
 
     // Book of Mormon - Full names (alternative spellings)
     map.insert("1 Nephi", ("1-ne", StandardWork::BookOfMormon));
@@ -199,5 +224,21 @@ mod tests {
         
         let (_, standard_work) = map.get("1 Ne.").unwrap();
         assert_eq!(*standard_work, StandardWork::BookOfMormon);
+    }
+
+    #[test]
+    fn test_abbreviation_map_without_periods() {
+        let map = create_abbreviation_map();
+        // Test that non-period versions work
+        assert!(map.contains_key("Gen"));
+        assert!(map.contains_key("Matt"));
+        assert!(map.contains_key("1 Ne"));
+        assert!(map.contains_key("2 Ne"));
+        assert!(map.contains_key("Hel"));
+        
+        // Verify they map to the same places as their period versions
+        assert_eq!(map.get("Gen").unwrap(), map.get("Gen.").unwrap());
+        assert_eq!(map.get("Matt").unwrap(), map.get("Matt.").unwrap());
+        assert_eq!(map.get("1 Ne").unwrap(), map.get("1 Ne.").unwrap());
     }
 }
