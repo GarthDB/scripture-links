@@ -3,7 +3,7 @@ use std::process::Command;
 #[test]
 fn test_cli_single_reference() {
     let output = Command::new("cargo")
-        .args(&["run", "--", "--reference", "Genesis 1:1"])
+        .args(["run", "--", "--reference", "Genesis 1:1"])
         .output()
         .expect("Failed to execute command");
 
@@ -16,7 +16,7 @@ fn test_cli_single_reference() {
 #[test]
 fn test_cli_text_processing() {
     let output = Command::new("cargo")
-        .args(&["run", "--", "--text", "See Genesis 1:1 and 2 Nephi 10:14"])
+        .args(["run", "--", "--text", "See Genesis 1:1 and 2 Nephi 10:14"])
         .output()
         .expect("Failed to execute command");
 
@@ -29,7 +29,7 @@ fn test_cli_text_processing() {
 #[test]
 fn test_cli_invalid_reference() {
     let output = Command::new("cargo")
-        .args(&["run", "--", "--reference", "InvalidBook 1:1"])
+        .args(["run", "--", "--reference", "InvalidBook 1:1"])
         .output()
         .expect("Failed to execute command");
 
@@ -41,7 +41,7 @@ fn test_cli_invalid_reference() {
 #[test]
 fn test_cli_invalid_chapter() {
     let output = Command::new("cargo")
-        .args(&["run", "--", "--reference", "Genesis 999:1"])
+        .args(["run", "--", "--reference", "Genesis 999:1"])
         .output()
         .expect("Failed to execute command");
 
@@ -53,7 +53,7 @@ fn test_cli_invalid_chapter() {
 #[test]
 fn test_cli_invalid_verse() {
     let output = Command::new("cargo")
-        .args(&["run", "--", "--reference", "Genesis 1:999"])
+        .args(["run", "--", "--reference", "Genesis 1:999"])
         .output()
         .expect("Failed to execute command");
 
@@ -65,7 +65,7 @@ fn test_cli_invalid_verse() {
 #[test]
 fn test_cli_help() {
     let output = Command::new("cargo")
-        .args(&["run", "--", "--help"])
+        .args(["run", "--", "--help"])
         .output()
         .expect("Failed to execute command");
 

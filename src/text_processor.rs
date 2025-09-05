@@ -36,7 +36,7 @@ pub fn process_text_for_scripture_references(text: &str) -> String {
     
     // Sort by length (descending) to match longer book names first
     // This prevents "1 Ne." from matching before "1 Nephi"
-    all_book_patterns.sort_by(|a, b| b.len().cmp(&a.len()));
+    all_book_patterns.sort_by_key(|b| std::cmp::Reverse(b.len()));
     
     // Create the master regex pattern
     let book_pattern = all_book_patterns.join("|");

@@ -33,8 +33,7 @@ pub fn parse_scripture_reference(reference: &str) -> Result<ScriptureReference, 
         let verse_start: u32 = captures.get(3).unwrap().as_str().parse()
             .map_err(|_| format!("Invalid verse number in reference: {}", reference))?;
         let verse_end: Option<u32> = captures.get(4)
-            .map(|m| m.as_str().parse().ok())
-            .flatten();
+            .and_then(|m| m.as_str().parse().ok());
 
         // Case-insensitive lookup
         let lookup_result = abbreviations.iter()
@@ -43,14 +42,10 @@ pub fn parse_scripture_reference(reference: &str) -> Result<ScriptureReference, 
 
         if let Some((book_url, standard_work)) = lookup_result {
             // Validate chapter range
-            if let Err(error) = scripture_data::validate_chapter_range(book_url, chapter) {
-                return Err(error);
-            }
+            scripture_data::validate_chapter_range(book_url, chapter)?;
             
             // Validate verse range
-            if let Err(error) = scripture_data::validate_verse_range(book_url, chapter, verse_start, verse_end) {
-                return Err(error);
-            }
+            scripture_data::validate_verse_range(book_url, chapter, verse_start, verse_end)?;
             
             Ok(ScriptureReference {
                 book: book_url.to_string(),

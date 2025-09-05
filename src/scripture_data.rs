@@ -574,7 +574,7 @@ pub fn validate_chapter_range(book_key: &str, chapter: u32) -> Result<(), String
         Some(book_info) => {
             let total_chapters = book_info.chapters.len() as u32;
             if chapter == 0 {
-                Err(format!("Chapter number must be greater than 0"))
+                Err("Chapter number must be greater than 0".to_string())
             } else if chapter > total_chapters {
                 Err(format!(
                     "Chapter {} does not exist in {}. {} has {} chapters (1-{})",
@@ -600,7 +600,7 @@ pub fn validate_verse_range(book_key: &str, chapter: u32, verse_start: u32, vers
             let total_verses = book_info.chapters[chapter_index];
             // Validate start verse
             if verse_start == 0 {
-                return Err(format!("Verse number must be greater than 0"));
+                return Err("Verse number must be greater than 0".to_string());
             }
             if verse_start > total_verses {
                 return Err(format!(

@@ -4,6 +4,9 @@ use clap::Parser;
 use std::fs;
 use crate::{parse_scripture_reference, generate_url, process_text_for_scripture_references};
 
+/// Custom error type for CLI operations
+pub type CliError = Box<dyn std::error::Error>;
+
 /// Command-line interface definition
 #[derive(Parser)]
 #[command(name = "scripture-links")]
@@ -24,7 +27,7 @@ pub struct Cli {
 
 impl Cli {
     /// Execute the CLI command
-    pub fn execute(self) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn execute(self) -> Result<(), CliError> {
         if let Some(reference) = self.reference {
             // Original single reference mode
             match parse_scripture_reference(&reference) {
