@@ -142,3 +142,100 @@ jobs:
           files: artifacts/**/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  update-homebrew:
+    name: Update Homebrew Formula
+    needs: [release, create-release]
+    if: needs.release.outputs.published == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Main Repo
+        uses: actions/checkout@v4
+
+      - name: Checkout Homebrew Tap
+        uses: actions/checkout@v4
+        with:
+          repository: GarthDB/homebrew-scripture-links
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: homebrew-tap
+
+      - name: Extract Version
+        id: extract_version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Download Release Assets and Calculate Checksums
+        run: |
+          VERSION="${{ steps.extract_version.outputs.version }}"
+          
+          # Download macOS binaries
+          curl -L -o scripture-links-aarch64-apple-darwin.tar.gz \
+            "https://github.com/GarthDB/scripture-links/releases/download/v${VERSION}/scripture-links-aarch64-apple-darwin.tar.gz"
+          curl -L -o scripture-links-x86_64-apple-darwin.tar.gz \
+            "https://github.com/GarthDB/scripture-links/releases/download/v${VERSION}/scripture-links-x86_64-apple-darwin.tar.gz"
+          curl -L -o scripture-links-x86_64-unknown-linux-gnu.tar.gz \
+            "https://github.com/GarthDB/scripture-links/releases/download/v${VERSION}/scripture-links-x86_64-unknown-linux-gnu.tar.gz"
+          
+          # Calculate checksums
+          MACOS_ARM64_SHA=$(shasum -a 256 scripture-links-aarch64-apple-darwin.tar.gz | cut -d' ' -f1)
+          MACOS_X64_SHA=$(shasum -a 256 scripture-links-x86_64-apple-darwin.tar.gz | cut -d' ' -f1)
+          LINUX_X64_SHA=$(shasum -a 256 scripture-links-x86_64-unknown-linux-gnu.tar.gz | cut -d' ' -f1)
+          
+          echo "MACOS_ARM64_SHA=$MACOS_ARM64_SHA" >> $GITHUB_ENV
+          echo "MACOS_X64_SHA=$MACOS_X64_SHA" >> $GITHUB_ENV
+          echo "LINUX_X64_SHA=$LINUX_X64_SHA" >> $GITHUB_ENV
+
+      - name: Update Homebrew Formula
+        run: |
+          VERSION="${{ steps.extract_version.outputs.version }}"
+          
+          # Update the formula file
+          cat > homebrew-tap/Formula/scripture-links.rb << EOF
+          class ScriptureLinks < Formula
+            desc "Convert scripture references to URLs for ChurchofJesusChrist.org"
+            homepage "https://github.com/GarthDB/scripture-links"
+            version "${VERSION}"
+            license "MIT"
+          
+            on_macos do
+              if Hardware::CPU.arm?
+                url "https://github.com/GarthDB/scripture-links/releases/download/v${VERSION}/scripture-links-aarch64-apple-darwin.tar.gz"
+                sha256 "${MACOS_ARM64_SHA}"
+              else
+                url "https://github.com/GarthDB/scripture-links/releases/download/v${VERSION}/scripture-links-x86_64-apple-darwin.tar.gz"
+                sha256 "${MACOS_X64_SHA}"
+              end
+            end
+          
+            on_linux do
+              url "https://github.com/GarthDB/scripture-links/releases/download/v${VERSION}/scripture-links-x86_64-unknown-linux-gnu.tar.gz"
+              sha256 "${LINUX_X64_SHA}"
+            end
+          
+            def install
+              bin.install "scripture-links"
+            end
+          
+            test do
+              # Test basic functionality
+              output = shell_output("#{bin}/scripture-links --reference 'Genesis 1:1'")
+              assert_match "https://www.churchofjesuschrist.org/study/scriptures/ot/gen/1", output
+              
+              # Test help command
+              help_output = shell_output("#{bin}/scripture-links --help")
+              assert_match "Generate links to scriptures on ChurchofJesusChrist.org", help_output
+            end
+          end
+          EOF
+
+      - name: Commit and Push Formula Update
+        run: |
+          cd homebrew-tap
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/scripture-links.rb
+          git commit -m "Update scripture-links to v${{ steps.extract_version.outputs.version }}"
+          git push

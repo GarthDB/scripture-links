@@ -19,6 +19,20 @@ A Rust command-line tool that converts scripture references into links to [Churc
 
 ## Installation
 
+### Homebrew (macOS/Linux)
+
+```bash
+# Add the tap
+brew tap garthdb/scripture-links
+
+# Install the CLI tool
+brew install scripture-links
+```
+
+### Download Release Binary
+
+Download the latest release from the [releases page](https://github.com/GarthDB/scripture-links/releases).
+
 ### From Source (Rust required)
 
 ```bash
@@ -28,10 +42,6 @@ cargo build --release
 ```
 
 The binary will be available at `target/release/scripture-links`.
-
-### Download Release Binary
-
-Download the latest release from the [releases page](https://github.com/GarthDB/scripture-links/releases).
 
 ## Usage
 
@@ -100,10 +110,6 @@ cargo build --release
 # Run tests
 cargo test
 ```
-
-## Installation
-
-The release binary is located at `target/release/scripture-links` after building.
 
 ## Validation Features
 
