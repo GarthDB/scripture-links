@@ -2,10 +2,49 @@
 
 A Rust command-line tool that converts scripture references into links to [ChurchofJesusChrist.org](https://www.churchofjesuschrist.org/study/scriptures).
 
-## Usage
+[![Rust](https://img.shields.io/badge/rust-1.70+-orange.svg)](https://www.rust-lang.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+## Features
+
+- 🔗 **Single Reference**: Convert individual scripture references to URLs
+- 📝 **Text Processing**: Find and convert scripture references in text to markdown links  
+- 📁 **File Processing**: Process entire files (markdown, text, etc.)
+- ✅ **Comprehensive Validation**: Chapter and verse range checking
+- 🔤 **Multiple Formats**: Full names, abbreviations, case-insensitive
+- 📚 **All Standard Works**: Old Testament, New Testament, Book of Mormon, D&C, Pearl of Great Price
+
+## Installation
+
+### From Source (Rust required)
 
 ```bash
+git clone https://github.com/GarthDB/scripture-links.git
+cd scripture-links
+cargo build --release
+```
+
+The binary will be available at `target/release/scripture-links`.
+
+### Download Release Binary
+
+Download the latest release from the [releases page](https://github.com/GarthDB/scripture-links/releases).
+
+## Usage
+
+### Single Reference
+```bash
 scripture-links --reference "Isa. 6:5"
+```
+
+### Process Text
+```bash
+scripture-links --text "See Genesis 1:1 for creation story"
+```
+
+### Process File
+```bash
+scripture-links --file document.md
 ```
 
 ## Examples
