@@ -1,7 +1,7 @@
 //! WASM bindings for the scripture links library
 
 use wasm_bindgen::prelude::*;
-use crate::{parse_scripture_reference, generate_url, process_text_for_scripture_references};
+use crate::{parse_scripture_reference, generate_url, generate_url_with_query, process_text_for_scripture_references};
 
 // Enable `console.log` for debugging
 #[wasm_bindgen]
@@ -43,11 +43,21 @@ impl ScriptureLinkResult {
 /// Parse a single scripture reference and return the URL
 #[wasm_bindgen]
 pub fn parse_reference(reference: &str) -> ScriptureLinkResult {
-    console_log!("Parsing reference: {}", reference);
+    parse_reference_with_query(reference, None)
+}
+
+/// Parse a single scripture reference with optional query and return the URL
+#[wasm_bindgen]
+pub fn parse_reference_with_query(reference: &str, query: Option<String>) -> ScriptureLinkResult {
+    console_log!("Parsing reference: {} with query: {:?}", reference, query);
     
     match parse_scripture_reference(reference) {
         Ok(scripture) => {
-            let url = generate_url(&scripture);
+            let url = if let Some(q) = query.as_deref() {
+                generate_url_with_query(&scripture, Some(q))
+            } else {
+                generate_url(&scripture)
+            };
             ScriptureLinkResult {
                 success: true,
                 result: url,

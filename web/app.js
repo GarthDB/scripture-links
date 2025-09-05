@@ -1,5 +1,5 @@
 // Scripture Links Web Application
-import init, { parse_reference, process_text, get_supported_formats } from './pkg/scripture_links.js';
+import init, { parse_reference, parse_reference_with_query, process_text, get_supported_formats } from './pkg/scripture_links.js';
 
 // Global state
 let wasmModule = null;
@@ -52,7 +52,14 @@ function convertSingleReference() {
     try {
         setLoading(true);
         
-        const result = parse_reference(reference);
+        // Check for query parameter (from URL or manual input)
+        const urlQueryParam = input.dataset.query;
+        const manualQuery = document.getElementById('search-query').value.trim();
+        const queryParam = manualQuery || urlQueryParam;
+        
+        const result = queryParam ? 
+            parse_reference_with_query(reference, queryParam) : 
+            parse_reference(reference);
         
         if (result.success) {
             const url = result.result;
@@ -286,6 +293,39 @@ function handleKeyboardShortcuts(event) {
     }
 }
 
+// Check for URL parameters and auto-process
+function handleUrlParameters() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const ref = urlParams.get('ref');
+    const query = urlParams.get('query');
+    
+    if (ref) {
+        // Auto-fill the reference input
+        const referenceInput = document.getElementById('single-reference');
+        referenceInput.value = ref;
+        
+        // Store query for later use
+        if (query) {
+            referenceInput.dataset.query = query;
+        }
+        
+        // Auto-convert after WASM loads
+        setTimeout(() => {
+            if (wasmModule) {
+                convertSingleReference();
+            } else {
+                // Wait for WASM to load, then convert
+                const checkWasm = setInterval(() => {
+                    if (wasmModule) {
+                        clearInterval(checkWasm);
+                        convertSingleReference();
+                    }
+                }, 100);
+            }
+        }, 100);
+    }
+}
+
 // Event listeners
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize WASM
@@ -296,11 +336,21 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.disabled = true;
     });
     
+    // Handle URL parameters
+    handleUrlParameters();
+    
     // Add keyboard shortcuts
     document.addEventListener('keydown', handleKeyboardShortcuts);
     
     // Add enter key support for single reference input
     document.getElementById('single-reference').addEventListener('keypress', (event) => {
+        if (event.key === 'Enter') {
+            convertSingleReference();
+        }
+    });
+    
+    // Add enter key support for search query input
+    document.getElementById('search-query').addEventListener('keypress', (event) => {
         if (event.key === 'Enter') {
             convertSingleReference();
         }

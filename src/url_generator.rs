@@ -21,6 +21,28 @@ use crate::types::ScriptureReference;
 /// assert!(url.contains("https://www.churchofjesuschrist.org/study/scriptures"));
 /// ```
 pub fn generate_url(scripture: &ScriptureReference) -> String {
+    generate_url_with_query(scripture, None)
+}
+
+/// Generate a URL for a scripture reference with an optional search query
+/// 
+/// # Examples
+/// 
+/// ```
+/// use scripture_links::{ScriptureReference, StandardWork, generate_url_with_query};
+/// 
+/// let scripture = ScriptureReference {
+///     book: "gen".to_string(),
+///     chapter: 1,
+///     verse_start: 1,
+///     verse_end: None,
+///     standard_work: StandardWork::OldTestament,
+/// };
+/// 
+/// let url = generate_url_with_query(&scripture, Some("creation"));
+/// assert!(url.contains("query=creation"));
+/// ```
+pub fn generate_url_with_query(scripture: &ScriptureReference, query: Option<&str>) -> String {
     let base_url = "https://www.churchofjesuschrist.org/study/scriptures";
     let standard_work_path = scripture.standard_work.to_url_path();
     let book_path = &scripture.book;
@@ -33,8 +55,20 @@ pub fn generate_url(scripture: &ScriptureReference) -> String {
     
     let fragment = format!("p{}", scripture.verse_start);
     
-    format!("{}/{}/{}/{}?lang=eng&id={}#{}", 
-            base_url, standard_work_path, book_path, scripture.chapter, id_param, fragment)
+    let mut url = format!("{}/{}/{}/{}?lang=eng&id={}", 
+            base_url, standard_work_path, book_path, scripture.chapter, id_param);
+    
+    // Add search query if provided
+    if let Some(q) = query {
+        if !q.trim().is_empty() {
+            // URL encode the query
+            let encoded_query = urlencoding::encode(q.trim());
+            url.push_str(&format!("&query={}", encoded_query));
+        }
+    }
+    
+    url.push_str(&format!("#{}", fragment));
+    url
 }
 
 #[cfg(test)]
@@ -84,5 +118,56 @@ mod tests {
         assert!(url.contains("lang=eng"));
         assert!(url.contains("id=p3-4"));
         assert!(url.contains("#p3"));
+    }
+
+    #[test]
+    fn test_generate_url_with_query() {
+        let scripture = ScriptureReference {
+            book: "gen".to_string(),
+            chapter: 1,
+            verse_start: 1,
+            verse_end: None,
+            standard_work: StandardWork::OldTestament,
+        };
+        
+        let url = generate_url_with_query(&scripture, Some("creation"));
+        
+        assert!(url.contains("query=creation"));
+        assert!(url.contains("https://www.churchofjesuschrist.org/study/scriptures"));
+        assert!(url.contains("ot/gen/1"));
+        assert!(url.contains("#p1"));
+    }
+
+    #[test]
+    fn test_generate_url_with_empty_query() {
+        let scripture = ScriptureReference {
+            book: "gen".to_string(),
+            chapter: 1,
+            verse_start: 1,
+            verse_end: None,
+            standard_work: StandardWork::OldTestament,
+        };
+        
+        let url = generate_url_with_query(&scripture, Some(""));
+        let url_none = generate_url(&scripture);
+        
+        // Empty query should be the same as no query
+        assert_eq!(url, url_none);
+        assert!(!url.contains("query="));
+    }
+
+    #[test]
+    fn test_generate_url_with_special_characters() {
+        let scripture = ScriptureReference {
+            book: "gen".to_string(),
+            chapter: 1,
+            verse_start: 1,
+            verse_end: None,
+            standard_work: StandardWork::OldTestament,
+        };
+        
+        let url = generate_url_with_query(&scripture, Some("light & darkness"));
+        
+        assert!(url.contains("query=light%20%26%20darkness"));
     }
 }
