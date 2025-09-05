@@ -1,0 +1,10 @@
+error: unexpected argument '-i' found
+
+Usage: cargo check [OPTIONS]
+
+For more information, try '--help'.
+error: unexpected argument '-i' found
+
+Usage: cargo check [OPTIONS]
+
+For more information, try '--help'.
