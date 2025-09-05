@@ -1,0 +1,7 @@
+# Clippy configuration for stricter linting
+cognitive-complexity-threshold = 30
+doc-valid-idents = ["ChurchofJesusChrist", "changelog", "GitHub", "macOS"]
+too-many-arguments-threshold = 7
+type-complexity-threshold = 100
+single-char-binding-names-threshold = 4
+trivial-copy-size-limit = 64

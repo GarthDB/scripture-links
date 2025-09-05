@@ -4,6 +4,9 @@ A Rust command-line tool that converts scripture references into links to [Churc
 
 [![Rust](https://img.shields.io/badge/rust-1.70+-orange.svg)](https://www.rust-lang.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI](https://github.com/GarthDB/scripture-links/actions/workflows/ci.yml/badge.svg)](https://github.com/GarthDB/scripture-links/actions/workflows/ci.yml)
+[![Security Audit](https://github.com/GarthDB/scripture-links/actions/workflows/security.yml/badge.svg)](https://github.com/GarthDB/scripture-links/actions/workflows/security.yml)
+[![codecov](https://codecov.io/gh/GarthDB/scripture-links/branch/main/graph/badge.svg)](https://codecov.io/gh/GarthDB/scripture-links)
 
 ## Features
 
