@@ -1,13 +1,10 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use scripture_links::*; // Adjust import based on your actual module structure
-
-// Note: You'll need to make your parsing functions public or create a lib.rs
+use scripture_links::{parse_scripture_reference, process_text_for_scripture_references};
 
 fn benchmark_single_reference_parsing(c: &mut Criterion) {
     c.bench_function("parse single reference", |b| {
         b.iter(|| {
-            // This will need to be adjusted based on your actual function signature
-            // parse_scripture_reference(black_box("Genesis 1:1"))
+            parse_scripture_reference(black_box("Genesis 1:1"))
         })
     });
 }
@@ -19,8 +16,7 @@ fn benchmark_text_processing(c: &mut Criterion) {
 
     c.bench_function("process large text", |b| {
         b.iter(|| {
-            // This will need to be adjusted based on your actual function signature  
-            // process_text_for_scripture_references(black_box(&large_text))
+            process_text_for_scripture_references(black_box(&large_text))
         })
     });
 }
