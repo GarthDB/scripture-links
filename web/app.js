@@ -350,6 +350,19 @@ function showInfo(message) {
 }
 
 function showToast(message, type = 'info') {
+    // Hide all existing toasts first
+    hideAllToasts();
+    
+    // On mobile, don't show error toasts if we're already showing error in result area
+    // This reduces redundancy and clutter
+    if (type === 'error' && window.innerWidth <= 768) {
+        const resultAreas = document.querySelectorAll('.result-area.error');
+        if (resultAreas.length > 0) {
+            // Error is already visible in result area, skip toast
+            return;
+        }
+    }
+    
     const toastId = type === 'error' ? 'error-toast' : 'success-toast';
     const messageId = type === 'error' ? 'error-message' : 'success-message';
     
@@ -359,10 +372,16 @@ function showToast(message, type = 'info') {
     messageElement.textContent = message;
     toast.classList.remove('hidden');
     
-    // Auto-hide after 5 seconds
+    // Auto-hide after 4 seconds on mobile (shorter), 5 seconds on desktop
+    const hideDelay = window.innerWidth <= 768 ? 4000 : 5000;
     setTimeout(() => {
         toast.classList.add('hidden');
-    }, 5000);
+    }, hideDelay);
+}
+
+function hideAllToasts() {
+    document.getElementById('error-toast').classList.add('hidden');
+    document.getElementById('success-toast').classList.add('hidden');
 }
 
 function hideError() {

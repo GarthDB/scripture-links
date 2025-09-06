@@ -396,7 +396,18 @@ footer a:hover {
     .toast {
         left: var(--spacing-sm);
         right: var(--spacing-sm);
+        top: auto;
+        bottom: var(--spacing-lg);
         max-width: none;
+        position: fixed;
+        transform: translateY(0);
+        border-radius: var(--radius-lg);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    }
+    
+    .toast.hidden {
+        transform: translateY(calc(100% + var(--spacing-lg)));
+        opacity: 0;
     }
 }
 
