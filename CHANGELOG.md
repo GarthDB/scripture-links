@@ -1,5 +1,32 @@
 # scripture-links
 
+## 1.1.0
+
+### Minor Changes
+
+- Add LLM-friendly CLI features and fix period handling
+
+  ### ✨ New Features
+
+  - **JSON Output**: Add `--json` flag for structured, machine-readable responses
+  - **Batch Processing**: Add `--batch` flag to process multiple comma-separated references
+  - **Validation Mode**: Add `--validate-only` flag to check references without generating URLs
+  - **Structured Errors**: Enhanced error handling with error codes, categories, and suggestions
+
+  ### 🐛 Bug Fixes
+
+  - **Period Optional Fix**: Fixed issue where `philip 4:13` failed while `philip. 4:13` worked
+  - **Parser Normalization**: Periods in book abbreviations are now truly optional
+  - **Cleaner Abbreviation Map**: Removed duplicate period/non-period entries (~50% size reduction)
+
+  ### 🔧 Technical Improvements
+
+  - Added comprehensive JSON response schemas for LLM integration
+  - Enhanced error categorization (InvalidFormat, UnknownBook, InvalidChapter, etc.)
+  - Improved suggestion extraction for misspelled book names
+  - Better structured output for virtual assistant and automation use cases
+  - Maintained full backward compatibility with existing CLI usage
+
 ## 1.0.0
 
 ### Major Changes
