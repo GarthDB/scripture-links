@@ -30,30 +30,19 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Version packages with Changesets
+      - name: Create Release Pull Request or Publish
         id: changesets
+        uses: changesets/action@v1
+        with:
+          # This will run the version-packages script when there are changesets
+          version: npm run version-packages
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          if npm run release; then
-            echo "published=true" >> $GITHUB_OUTPUT
-          else
-            echo "published=false" >> $GITHUB_OUTPUT
-          fi
-          
-      - name: Commit and push version changes
-        if: steps.changesets.outputs.published == 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .
-          git commit -m "Version packages" || exit 0
-          git push
 
   build-binaries:
     name: Build Release Binaries
     needs: release
-    if: needs.release.outputs.published == 'true'
+    if: needs.release.outputs.published == 'true' || needs.release.outputs.publishedPackages != ''
     permissions:
       contents: write
     strategy:
@@ -115,7 +104,7 @@ jobs:
   create-release:
     name: Create GitHub Release
     needs: [release, build-binaries]
-    if: needs.release.outputs.published == 'true'
+    if: needs.release.outputs.published == 'true' || needs.release.outputs.publishedPackages != ''
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -148,7 +137,7 @@ jobs:
   update-homebrew:
     name: Update Homebrew Formula
     needs: [release, create-release]
-    if: needs.release.outputs.published == 'true'
+    if: needs.release.outputs.published == 'true' || needs.release.outputs.publishedPackages != ''
     runs-on: ubuntu-latest
     permissions:
       contents: write
