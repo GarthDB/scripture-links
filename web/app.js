@@ -1,5 +1,5 @@
 // Scripture Links Web Application
-import init, { parse_reference, process_text, get_supported_formats } from './pkg/scripture_links.js';
+import init, { parse_reference, parse_reference_json, process_text, get_supported_formats } from './pkg/scripture_links.js';
 
 // Global state
 let wasmModule = null;
@@ -52,10 +52,10 @@ function convertSingleReference() {
     try {
         setLoading(true);
         
-        const result = parse_reference(reference);
+        const result = parse_reference_json(reference);
         
         if (result.success) {
-            const url = result.result;
+            const url = result.url;
             resultArea.textContent = url;
             resultArea.className = 'result-area has-content success';
             
@@ -76,13 +76,91 @@ function convertSingleReference() {
             
         } else {
             const error = result.error || 'Unknown error occurred';
-            resultArea.textContent = `Error: ${error}`;
-            resultArea.className = 'result-area has-content error';
+            
+            // If we have structured error info, enhance the display
+            if (typeof error === 'object' && error.message) {
+                // Clear the result area and build it with HTML for interactive suggestions
+                resultArea.innerHTML = '';
+                resultArea.className = 'result-area has-content error';
+                
+                // Add the error message
+                const errorText = document.createElement('div');
+                errorText.textContent = `Error: ${error.message}`;
+                resultArea.appendChild(errorText);
+                
+                // Add interactive suggestions if available
+                if (error.suggestions && error.suggestions.length > 0) {
+                    const suggestionDiv = document.createElement('div');
+                    suggestionDiv.style.marginTop = '12px';
+                    suggestionDiv.style.fontSize = '0.9em';
+                    
+                    const suggestionLabel = document.createElement('div');
+                    suggestionLabel.textContent = '💡 Did you mean:';
+                    suggestionLabel.style.marginBottom = '6px';
+                    suggestionDiv.appendChild(suggestionLabel);
+                    
+                    const suggestionLinks = document.createElement('div');
+                    suggestionLinks.style.display = 'flex';
+                    suggestionLinks.style.gap = '8px';
+                    suggestionLinks.style.flexWrap = 'wrap';
+                    
+                    error.suggestions.forEach((suggestion, index) => {
+                        const link = document.createElement('button');
+                        link.textContent = suggestion;
+                        link.style.background = 'none';
+                        link.style.border = '1px solid var(--primary-color)';
+                        link.style.color = 'var(--primary-color)';
+                        link.style.padding = '4px 8px';
+                        link.style.borderRadius = '4px';
+                        link.style.cursor = 'pointer';
+                        link.style.fontSize = '0.85em';
+                        link.style.transition = 'all 0.2s ease';
+                        
+                        link.addEventListener('mouseenter', () => {
+                            link.style.backgroundColor = 'var(--primary-color)';
+                            link.style.color = 'white';
+                        });
+                        
+                        link.addEventListener('mouseleave', () => {
+                            link.style.backgroundColor = 'transparent';
+                            link.style.color = 'var(--primary-color)';
+                        });
+                        
+                        link.addEventListener('click', () => {
+                            // Replace the input with the suggestion and the rest of the reference
+                            const currentInput = input.value.trim();
+                            const parts = currentInput.split(/\s+/);
+                            if (parts.length > 0) {
+                                // Replace the first part (book name) with the suggestion
+                                parts[0] = suggestion;
+                                const newReference = parts.join(' ');
+                                input.value = newReference;
+                                input.focus();
+                                
+                                // Automatically convert the corrected reference
+                                setTimeout(() => {
+                                    convertSingleReference();
+                                }, 100);
+                            }
+                        });
+                        
+                        suggestionLinks.appendChild(link);
+                    });
+                    
+                    suggestionDiv.appendChild(suggestionLinks);
+                    resultArea.appendChild(suggestionDiv);
+                }
+            } else {
+                // Fallback for simple error messages
+                resultArea.textContent = `Error: ${error}`;
+                resultArea.className = 'result-area has-content error';
+            }
+            
             // Hide action buttons on error
             document.getElementById('single-buttons').classList.add('hidden');
             // Clear URL parameter on error
             clearBrowserUrl();
-            showError(error);
+            showError(typeof error === 'object' && error.message ? error.message : error);
         }
         
     } catch (error) {

@@ -2,6 +2,7 @@
 
 use wasm_bindgen::prelude::*;
 use crate::{parse_scripture_reference, generate_url, process_text_for_scripture_references};
+use crate::json_output::{create_error_response, SingleReferenceResponse};
 
 // Enable `console.log` for debugging
 #[wasm_bindgen]
@@ -62,6 +63,30 @@ pub fn parse_reference(reference: &str) -> ScriptureLinkResult {
             }
         }
     }
+}
+
+/// Parse a single scripture reference and return structured JSON response
+#[wasm_bindgen]
+pub fn parse_reference_json(reference: &str) -> JsValue {
+    console_log!("Parsing reference (JSON): {}", reference);
+    
+    let response = match parse_scripture_reference(reference) {
+        Ok(scripture) => {
+            let url = generate_url(&scripture);
+            SingleReferenceResponse {
+                success: true,
+                input: reference.to_string(),
+                parsed: Some(scripture),
+                url: Some(url),
+                error: None,
+            }
+        }
+        Err(error) => {
+            create_error_response(reference, &error)
+        }
+    };
+    
+    serde_wasm_bindgen::to_value(&response).unwrap_or_else(|_| JsValue::NULL)
 }
 
 /// Process text and convert scripture references to markdown links

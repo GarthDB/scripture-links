@@ -99,13 +99,40 @@ impl ErrorInfo {
 /// Helper function to create error responses
 pub fn create_error_response(input: &str, error_msg: &str) -> SingleReferenceResponse {
     let (code, category) = categorize_error(error_msg);
+    let suggestions = extract_suggestions(error_msg);
+    
+    let error_info = ErrorInfo::new(&code, error_msg, category);
+    let error_info = if let Some(suggestions) = suggestions {
+        error_info.with_suggestions(suggestions)
+    } else {
+        error_info
+    };
     
     SingleReferenceResponse {
         success: false,
         input: input.to_string(),
         parsed: None,
         url: None,
-        error: Some(ErrorInfo::new(&code, error_msg, category)),
+        error: Some(error_info),
+    }
+}
+
+/// Extract suggestions from error messages
+fn extract_suggestions(error_msg: &str) -> Option<Vec<String>> {
+    if error_msg.contains("Did you mean:") {
+        // Extract suggestions from "Did you mean: Philip, Rev.?" format
+        if let Some(suggestions_part) = error_msg.split("Did you mean: ").nth(1) {
+            let suggestions_str = suggestions_part.trim_end_matches('?');
+            let suggestions: Vec<String> = suggestions_str
+                .split(", ")
+                .map(|s| s.trim().to_string())
+                .collect();
+            Some(suggestions)
+        } else {
+            None
+        }
+    } else {
+        None
     }
 }
 
