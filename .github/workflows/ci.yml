@@ -40,6 +40,57 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: cargo clippy --all-targets --all-features -- -D warnings -D clippy::pedantic -D clippy::nursery -A clippy::missing_docs_in_private_items
 
+  wasm:
+    name: WASM Build Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Setup Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Build WASM
+        run: wasm-pack build --target web --out-dir web/pkg
+
+      - name: Verify WASM files exist
+        run: |
+          ls -la web/pkg/
+          test -f web/pkg/scripture_links_lib.js
+          test -f web/pkg/scripture_links_lib_bg.wasm
+          echo "✅ WASM build successful"
+
+      - name: Test WASM import structure
+        run: |
+          # Check that the JS file exports the expected functions
+          grep -q "parse_reference_json" web/pkg/scripture_links_lib.js
+          grep -q "process_text" web/pkg/scripture_links_lib.js
+          grep -q "get_supported_formats" web/pkg/scripture_links_lib.js
+          echo "✅ WASM exports verified"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Test WASM Integration
+        run: |
+          chmod +x tests/wasm_integration.js
+          node tests/wasm_integration.js
+
+      - name: Test Web Import Consistency
+        run: |
+          chmod +x tests/web_import_test.js
+          node tests/web_import_test.js
+
   coverage:
     name: Code Coverage
     runs-on: ubuntu-latest

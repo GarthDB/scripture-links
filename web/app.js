@@ -1,5 +1,5 @@
 // Scripture Links Web Application
-import init, { parse_reference, parse_reference_json, process_text, get_supported_formats } from './pkg/scripture_links.js';
+import init, { parse_reference, parse_reference_json, process_text, get_supported_formats } from './pkg/scripture_links_lib.js';
 
 // Global state
 let wasmModule = null;

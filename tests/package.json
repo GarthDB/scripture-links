@@ -1,0 +1,6 @@
+{
+  "type": "module",
+  "name": "scripture-links-tests",
+  "version": "1.0.0",
+  "description": "Test utilities for scripture-links project"
+}
