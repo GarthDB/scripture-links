@@ -239,4 +239,74 @@ mod tests {
         assert_eq!(result5.chapter, result6.chapter);
         assert_eq!(result5.verse_start, result6.verse_start);
     }
+
+    #[test]
+    fn test_invalid_format_errors() {
+        // Test various invalid format scenarios
+        let result = parse_scripture_reference("");
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert!(error.contains("Invalid scripture reference format"));
+        
+        let result = parse_scripture_reference("Genesis");
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert!(error.contains("Invalid scripture reference format"));
+        
+        assert!(parse_scripture_reference("Genesis 1").is_err());
+        assert!(parse_scripture_reference("Genesis:1").is_err());
+        assert!(parse_scripture_reference("1:1").is_err());
+        assert!(parse_scripture_reference("Genesis abc:1").is_err());
+        assert!(parse_scripture_reference("Genesis 1:abc").is_err());
+    }
+
+    #[test]
+    fn test_unknown_book_error() {
+        let result = parse_scripture_reference("UnknownBook 1:1");
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert!(error.contains("Unknown book abbreviation"));
+        assert!(error.contains("UnknownBook"));
+    }
+
+    #[test]
+    fn test_unknown_book_with_suggestions() {
+        // Test a book that's similar to existing ones (should get suggestions)
+        let result = parse_scripture_reference("Gen 1:1");
+        assert!(result.is_ok()); // This should actually work
+        
+        // Test a book that's similar but not exact
+        let result = parse_scripture_reference("Genes 1:1");
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert!(error.contains("Did you mean:"));
+        assert!(error.contains("Genesis"));
+    }
+
+    #[test]
+    fn test_unknown_book_no_suggestions() {
+        // Test a book that's completely different (should not get suggestions)
+        let result = parse_scripture_reference("XYZ 1:1");
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert!(error.contains("Unknown book abbreviation"));
+        assert!(error.contains("Please check the spelling"));
+        assert!(!error.contains("Did you mean:"));
+    }
+
+    #[test]
+    fn test_invalid_chapter_number() {
+        let result = parse_scripture_reference("Genesis 0:1");
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert!(error.contains("Chapter number must be greater than 0"));
+    }
+
+    #[test]
+    fn test_invalid_verse_number() {
+        let result = parse_scripture_reference("Genesis 1:0");
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert!(error.contains("Verse number must be greater than 0"));
+    }
 }

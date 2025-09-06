@@ -69,7 +69,7 @@ pub struct ErrorInfo {
 }
 
 /// Error categories for programmatic handling
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum ErrorCategory {
     InvalidFormat,
     UnknownBook,
@@ -192,5 +192,124 @@ mod tests {
         let (code, category) = categorize_error("Invalid scripture reference format");
         assert_eq!(code, "INVALID_FORMAT");
         assert!(matches!(category, ErrorCategory::InvalidFormat));
+
+        let (code, category) = categorize_error("Chapter 999 does not exist in Genesis");
+        assert_eq!(code, "INVALID_CHAPTER");
+        assert!(matches!(category, ErrorCategory::InvalidChapter));
+
+        let (code, category) = categorize_error("Verse 999 does not exist in Genesis 1");
+        assert_eq!(code, "INVALID_VERSE");
+        assert!(matches!(category, ErrorCategory::InvalidVerse));
+
+        let (code, category) = categorize_error("Some other parsing error");
+        assert_eq!(code, "PARSE_ERROR");
+        assert!(matches!(category, ErrorCategory::ParseError));
+    }
+
+    #[test]
+    fn test_batch_response_serialization() {
+        let response = BatchResponse {
+            success: true,
+            total_processed: 3,
+            successful: 2,
+            failed: 1,
+            results: vec![
+                SingleReferenceResponse {
+                    success: true,
+                    input: "Genesis 1:1".to_string(),
+                    parsed: None,
+                    url: Some("https://example.com".to_string()),
+                    error: None,
+                },
+                SingleReferenceResponse {
+                    success: false,
+                    input: "Invalid".to_string(),
+                    parsed: None,
+                    url: None,
+                    error: Some(ErrorInfo::new("INVALID_BOOK", "Unknown book", ErrorCategory::UnknownBook)),
+                },
+            ],
+        };
+
+        let json = serde_json::to_string(&response).unwrap();
+        assert!(json.contains("\"total_processed\":3"));
+        assert!(json.contains("\"successful\":2"));
+        assert!(json.contains("\"failed\":1"));
+    }
+
+    #[test]
+    fn test_text_processing_response_serialization() {
+        let response = TextProcessingResponse {
+            success: true,
+            input_text: "See Genesis 1:1".to_string(),
+            output_text: "See [Genesis 1:1](https://example.com)".to_string(),
+            references_found: 1,
+            references: vec![
+                FoundReference {
+                    original_text: "Genesis 1:1".to_string(),
+                    parsed: None,
+                    url: Some("https://example.com".to_string()),
+                    position: Some(TextPosition { start: 4, end: 15 }),
+                },
+            ],
+        };
+
+        let json = serde_json::to_string(&response).unwrap();
+        assert!(json.contains("\"references_found\":1"));
+        assert!(json.contains("\"original_text\":\"Genesis 1:1\""));
+    }
+
+    #[test]
+    fn test_validation_response_serialization() {
+        let response = ValidationResponse {
+            success: true,
+            input: "Genesis 1:1".to_string(),
+            valid: true,
+            parsed: Some(ScriptureReference {
+                book: "gen".to_string(),
+                chapter: 1,
+                verse_start: 1,
+                verse_end: None,
+                standard_work: StandardWork::OldTestament,
+            }),
+            error: None,
+        };
+
+        let json = serde_json::to_string(&response).unwrap();
+        assert!(json.contains("\"valid\":true"));
+        assert!(json.contains("\"input\":\"Genesis 1:1\""));
+    }
+
+    #[test]
+    fn test_error_info_with_suggestions() {
+        let error = ErrorInfo::new("INVALID_BOOK", "Unknown book", ErrorCategory::UnknownBook)
+            .with_suggestions(vec!["Genesis".to_string(), "Exodus".to_string()]);
+        
+        let json = serde_json::to_string(&error).unwrap();
+        assert!(json.contains("\"suggestions\":[\"Genesis\",\"Exodus\"]"));
+    }
+
+    #[test]
+    fn test_extract_suggestions() {
+        let error_msg = "Unknown book abbreviation: 'gen'. Did you mean: Genesis, Exodus?";
+        let suggestions = extract_suggestions(error_msg);
+        assert_eq!(suggestions, Some(vec!["Genesis".to_string(), "Exodus".to_string()]));
+
+        let error_msg_no_suggestions = "Unknown book abbreviation: 'gen'";
+        let suggestions = extract_suggestions(error_msg_no_suggestions);
+        assert_eq!(suggestions, None);
+    }
+
+    #[test]
+    fn test_create_error_response() {
+        let response = create_error_response("InvalidBook 1:1", "Unknown book abbreviation: 'InvalidBook'. Did you mean: Genesis, Exodus?");
+        
+        assert!(!response.success);
+        assert_eq!(response.input, "InvalidBook 1:1");
+        assert!(response.error.is_some());
+        
+        let error = response.error.unwrap();
+        assert_eq!(error.category, ErrorCategory::UnknownBook);
+        assert_eq!(error.suggestions, Some(vec!["Genesis".to_string(), "Exodus".to_string()]));
     }
 }

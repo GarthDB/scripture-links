@@ -14,5 +14,8 @@ yarn-error.log*
 /pkg/
 /web/pkg/
 
+# Coverage reports
+/coverage/
+
 # Local web server
 .DS_Store
