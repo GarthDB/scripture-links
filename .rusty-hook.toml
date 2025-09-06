@@ -1,5 +1,5 @@
 [hooks]
-pre-commit = "cargo fmt --all && cargo clippy --all-targets --all-features -- -D warnings -D clippy::pedantic -D clippy::nursery -A clippy::missing_docs_in_private_items"
+pre-commit = "cargo fmt --all && git add -u && cargo clippy --all-targets --all-features -- -D warnings -D clippy::pedantic -D clippy::nursery -A clippy::missing_docs_in_private_items"
 pre-push = "cargo test --all-features"
 
 [logging]
