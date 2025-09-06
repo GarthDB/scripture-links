@@ -72,7 +72,7 @@ jobs:
             os: macos-latest
             name: scripture-links-aarch64-apple-darwin.tar.gz
           - target: x86_64-pc-windows-msvc
-            os: windows-latest
+            os: windows-2022
             name: scripture-links-x86_64-pc-windows-msvc.zip
     runs-on: ${{ matrix.os }}
     steps:
@@ -86,19 +86,21 @@ jobs:
 
       - name: Setup Cache
         uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
 
       - name: Build Binary
         run: cargo build --release --target ${{ matrix.target }}
 
       - name: Package Binary (Unix)
-        if: matrix.os != 'windows-latest'
+        if: matrix.os != 'windows-2022'
         run: |
           cd target/${{ matrix.target }}/release
           tar -czf ../../../${{ matrix.name }} scripture-links
           cd -
 
       - name: Package Binary (Windows)
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows-2022'
         run: |
           cd target/${{ matrix.target }}/release
           7z a ../../../${{ matrix.name }} scripture-links.exe
