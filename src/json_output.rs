@@ -69,7 +69,7 @@ pub struct ErrorInfo {
 }
 
 /// Error categories for programmatic handling
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ErrorCategory {
     InvalidFormat,
     UnknownBook,
@@ -226,7 +226,11 @@ mod tests {
                     input: "Invalid".to_string(),
                     parsed: None,
                     url: None,
-                    error: Some(ErrorInfo::new("INVALID_BOOK", "Unknown book", ErrorCategory::UnknownBook)),
+                    error: Some(ErrorInfo::new(
+                        "INVALID_BOOK",
+                        "Unknown book",
+                        ErrorCategory::UnknownBook,
+                    )),
                 },
             ],
         };
@@ -244,14 +248,12 @@ mod tests {
             input_text: "See Genesis 1:1".to_string(),
             output_text: "See [Genesis 1:1](https://example.com)".to_string(),
             references_found: 1,
-            references: vec![
-                FoundReference {
-                    original_text: "Genesis 1:1".to_string(),
-                    parsed: None,
-                    url: Some("https://example.com".to_string()),
-                    position: Some(TextPosition { start: 4, end: 15 }),
-                },
-            ],
+            references: vec![FoundReference {
+                original_text: "Genesis 1:1".to_string(),
+                parsed: None,
+                url: Some("https://example.com".to_string()),
+                position: Some(TextPosition { start: 4, end: 15 }),
+            }],
         };
 
         let json = serde_json::to_string(&response).unwrap();
@@ -284,7 +286,7 @@ mod tests {
     fn test_error_info_with_suggestions() {
         let error = ErrorInfo::new("INVALID_BOOK", "Unknown book", ErrorCategory::UnknownBook)
             .with_suggestions(vec!["Genesis".to_string(), "Exodus".to_string()]);
-        
+
         let json = serde_json::to_string(&error).unwrap();
         assert!(json.contains("\"suggestions\":[\"Genesis\",\"Exodus\"]"));
     }
@@ -293,7 +295,10 @@ mod tests {
     fn test_extract_suggestions() {
         let error_msg = "Unknown book abbreviation: 'gen'. Did you mean: Genesis, Exodus?";
         let suggestions = extract_suggestions(error_msg);
-        assert_eq!(suggestions, Some(vec!["Genesis".to_string(), "Exodus".to_string()]));
+        assert_eq!(
+            suggestions,
+            Some(vec!["Genesis".to_string(), "Exodus".to_string()])
+        );
 
         let error_msg_no_suggestions = "Unknown book abbreviation: 'gen'";
         let suggestions = extract_suggestions(error_msg_no_suggestions);
@@ -302,14 +307,20 @@ mod tests {
 
     #[test]
     fn test_create_error_response() {
-        let response = create_error_response("InvalidBook 1:1", "Unknown book abbreviation: 'InvalidBook'. Did you mean: Genesis, Exodus?");
-        
+        let response = create_error_response(
+            "InvalidBook 1:1",
+            "Unknown book abbreviation: 'InvalidBook'. Did you mean: Genesis, Exodus?",
+        );
+
         assert!(!response.success);
         assert_eq!(response.input, "InvalidBook 1:1");
         assert!(response.error.is_some());
-        
+
         let error = response.error.unwrap();
         assert_eq!(error.category, ErrorCategory::UnknownBook);
-        assert_eq!(error.suggestions, Some(vec!["Genesis".to_string(), "Exodus".to_string()]));
+        assert_eq!(
+            error.suggestions,
+            Some(vec!["Genesis".to_string(), "Exodus".to_string()])
+        );
     }
 }

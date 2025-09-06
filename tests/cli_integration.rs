@@ -86,12 +86,17 @@ fn test_cli_json_output() {
 
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).unwrap();
-    
+
     // Parse as JSON to ensure it's valid
     let json: serde_json::Value = serde_json::from_str(&stdout).expect("Invalid JSON output");
     assert_eq!(json["success"], true);
     assert_eq!(json["input"], "Genesis 1:1");
-    assert!(json["url"].as_str().unwrap().contains("churchofjesuschrist.org"));
+    assert!(
+        json["url"]
+            .as_str()
+            .unwrap()
+            .contains("churchofjesuschrist.org")
+    );
 }
 
 #[test]
@@ -104,24 +109,35 @@ fn test_cli_json_error() {
     // In JSON mode, CLI returns success but outputs error as JSON
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).unwrap();
-    
+
     // Parse as JSON to ensure it's valid
     let json: serde_json::Value = serde_json::from_str(&stdout).expect("Invalid JSON output");
     assert_eq!(json["success"], false);
     assert_eq!(json["input"], "InvalidBook 1:1");
-    assert!(json["error"]["message"].as_str().unwrap().contains("Unknown book"));
+    assert!(
+        json["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("Unknown book")
+    );
 }
 
 #[test]
 fn test_cli_batch_processing() {
     let output = Command::new("cargo")
-        .args(["run", "--", "--batch", "Genesis 1:1,2 Nephi 10:14,InvalidRef", "--json"])
+        .args([
+            "run",
+            "--",
+            "--batch",
+            "Genesis 1:1,2 Nephi 10:14,InvalidRef",
+            "--json",
+        ])
         .output()
         .expect("Failed to execute command");
 
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).unwrap();
-    
+
     // Parse as JSON to ensure it's valid
     let json: serde_json::Value = serde_json::from_str(&stdout).expect("Invalid JSON output");
     assert_eq!(json["total_processed"], 3);
@@ -133,13 +149,20 @@ fn test_cli_batch_processing() {
 #[test]
 fn test_cli_validate_only() {
     let output = Command::new("cargo")
-        .args(["run", "--", "--reference", "Genesis 1:1", "--validate-only", "--json"])
+        .args([
+            "run",
+            "--",
+            "--reference",
+            "Genesis 1:1",
+            "--validate-only",
+            "--json",
+        ])
         .output()
         .expect("Failed to execute command");
 
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).unwrap();
-    
+
     // Parse as JSON to ensure it's valid
     let json: serde_json::Value = serde_json::from_str(&stdout).expect("Invalid JSON output");
     assert_eq!(json["success"], true);
@@ -151,28 +174,39 @@ fn test_cli_validate_only() {
 #[test]
 fn test_cli_text_processing_json() {
     let output = Command::new("cargo")
-        .args(["run", "--", "--text", "See Genesis 1:1 and 2 Nephi 10:14", "--json"])
+        .args([
+            "run",
+            "--",
+            "--text",
+            "See Genesis 1:1 and 2 Nephi 10:14",
+            "--json",
+        ])
         .output()
         .expect("Failed to execute command");
 
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).unwrap();
-    
+
     // Parse as JSON to ensure it's valid
     let json: serde_json::Value = serde_json::from_str(&stdout).expect("Invalid JSON output");
     assert_eq!(json["success"], true);
     assert_eq!(json["references_found"], 2);
-    assert!(json["output_text"].as_str().unwrap().contains("[Genesis 1:1]("));
+    assert!(
+        json["output_text"]
+            .as_str()
+            .unwrap()
+            .contains("[Genesis 1:1](")
+    );
 }
 
 #[test]
 fn test_cli_file_processing() {
     use std::fs;
-    
+
     // Create a temporary file with scripture references
     let test_content = "See Genesis 1:1 and 2 Nephi 10:14 for insights.";
     fs::write("test_file.txt", test_content).expect("Failed to write test file");
-    
+
     let output = Command::new("cargo")
         .args(["run", "--", "--file", "test_file.txt"])
         .output()
@@ -182,7 +216,7 @@ fn test_cli_file_processing() {
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains("[Genesis 1:1]("));
     assert!(stdout.contains("[2 Nephi 10:14]("));
-    
+
     // Clean up
     fs::remove_file("test_file.txt").ok();
 }
@@ -190,11 +224,11 @@ fn test_cli_file_processing() {
 #[test]
 fn test_cli_file_processing_json() {
     use std::fs;
-    
+
     // Create a temporary file with scripture references
     let test_content = "See Genesis 1:1 for creation.";
     fs::write("test_file_json.txt", test_content).expect("Failed to write test file");
-    
+
     let output = Command::new("cargo")
         .args(["run", "--", "--file", "test_file_json.txt", "--json"])
         .output()
@@ -202,12 +236,12 @@ fn test_cli_file_processing_json() {
 
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).unwrap();
-    
+
     // Parse as JSON to ensure it's valid
     let json: serde_json::Value = serde_json::from_str(&stdout).expect("Invalid JSON output");
     assert_eq!(json["success"], true);
     assert_eq!(json["references_found"], 1);
-    
+
     // Clean up
     fs::remove_file("test_file_json.txt").ok();
 }
@@ -234,7 +268,7 @@ fn test_cli_file_not_found_json() {
     // In JSON mode, file errors return success but output error as JSON
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).unwrap();
-    
+
     // Parse as JSON to ensure it's valid
     let json: serde_json::Value = serde_json::from_str(&stdout).expect("Invalid JSON output");
     assert_eq!(json["success"], false);
@@ -268,7 +302,13 @@ fn test_cli_validate_only_non_json() {
 #[test]
 fn test_cli_validate_only_error_non_json() {
     let output = Command::new("cargo")
-        .args(["run", "--", "--reference", "InvalidBook 1:1", "--validate-only"])
+        .args([
+            "run",
+            "--",
+            "--reference",
+            "InvalidBook 1:1",
+            "--validate-only",
+        ])
         .output()
         .expect("Failed to execute command");
 
@@ -282,17 +322,29 @@ fn test_cli_validate_only_error_non_json() {
 #[test]
 fn test_cli_validate_only_error_json() {
     let output = Command::new("cargo")
-        .args(["run", "--", "--reference", "InvalidBook 1:1", "--validate-only", "--json"])
+        .args([
+            "run",
+            "--",
+            "--reference",
+            "InvalidBook 1:1",
+            "--validate-only",
+            "--json",
+        ])
         .output()
         .expect("Failed to execute command");
 
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).unwrap();
-    
+
     // Parse as JSON to ensure it's valid
     let json: serde_json::Value = serde_json::from_str(&stdout).expect("Invalid JSON output");
     assert_eq!(json["success"], false);
     assert_eq!(json["valid"], false);
     assert_eq!(json["input"], "InvalidBook 1:1");
-    assert!(json["error"]["message"].as_str().unwrap().contains("Unknown book"));
+    assert!(
+        json["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("Unknown book")
+    );
 }

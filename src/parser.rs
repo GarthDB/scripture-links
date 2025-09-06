@@ -247,12 +247,12 @@ mod tests {
         assert!(result.is_err());
         let error = result.unwrap_err();
         assert!(error.contains("Invalid scripture reference format"));
-        
+
         let result = parse_scripture_reference("Genesis");
         assert!(result.is_err());
         let error = result.unwrap_err();
         assert!(error.contains("Invalid scripture reference format"));
-        
+
         assert!(parse_scripture_reference("Genesis 1").is_err());
         assert!(parse_scripture_reference("Genesis:1").is_err());
         assert!(parse_scripture_reference("1:1").is_err());
@@ -274,7 +274,7 @@ mod tests {
         // Test a book that's similar to existing ones (should get suggestions)
         let result = parse_scripture_reference("Gen 1:1");
         assert!(result.is_ok()); // This should actually work
-        
+
         // Test a book that's similar but not exact
         let result = parse_scripture_reference("Genes 1:1");
         assert!(result.is_err());
