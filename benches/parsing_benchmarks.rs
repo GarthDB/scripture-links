@@ -3,7 +3,7 @@ use scripture_links::{parse_scripture_reference, process_text_for_scripture_refe
 
 fn benchmark_single_reference_parsing(c: &mut Criterion) {
     c.bench_function("parse single reference", |b| {
-        b.iter(|| parse_scripture_reference(black_box("Genesis 1:1")))
+        b.iter(|| parse_scripture_reference(black_box("Genesis 1:1")));
     });
 }
 
@@ -13,7 +13,7 @@ fn benchmark_text_processing(c: &mut Criterion) {
                      Read Moroni 10:4-5 for the promise.".repeat(100);
 
     c.bench_function("process large text", |b| {
-        b.iter(|| process_text_for_scripture_references(black_box(&large_text)))
+        b.iter(|| process_text_for_scripture_references(black_box(&large_text)));
     });
 }
 

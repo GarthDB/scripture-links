@@ -17,6 +17,13 @@ use regex::Regex;
 /// assert_eq!(result.chapter, 1);
 /// assert_eq!(result.verse_start, 1);
 /// ```
+/// 
+/// # Errors
+/// Returns an error if the reference format is invalid, the book is unknown,
+/// or if chapter/verse numbers are invalid.
+/// 
+/// # Panics
+/// Panics if the internal regex pattern is invalid (should never happen).
 pub fn parse_scripture_reference(reference: &str) -> Result<ScriptureReference, String> {
     let abbreviations = create_abbreviation_map();
 

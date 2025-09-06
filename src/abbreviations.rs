@@ -3,10 +3,12 @@
 use crate::types::StandardWork;
 use std::collections::HashMap;
 
-/// Type alias for abbreviation mappings: abbreviation -> (url_name, standard_work)
+/// Type alias for abbreviation mappings: abbreviation -> (`url_name`, `standard_work`)
 pub type AbbreviationMap = HashMap<&'static str, (&'static str, StandardWork)>;
 
 /// Create a comprehensive mapping of scripture abbreviations to their URL names and standard works
+#[must_use]
+#[allow(clippy::too_many_lines)]
 pub fn create_abbreviation_map() -> AbbreviationMap {
     let mut map = HashMap::new();
 

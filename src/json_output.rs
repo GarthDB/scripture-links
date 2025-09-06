@@ -81,6 +81,7 @@ pub enum ErrorCategory {
 }
 
 impl ErrorInfo {
+    #[must_use]
     pub fn new(code: &str, message: &str, category: ErrorCategory) -> Self {
         Self {
             code: code.to_string(),
@@ -90,6 +91,7 @@ impl ErrorInfo {
         }
     }
 
+    #[must_use]
     pub fn with_suggestions(mut self, suggestions: Vec<String>) -> Self {
         self.suggestions = Some(suggestions);
         self

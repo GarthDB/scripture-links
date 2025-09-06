@@ -8,9 +8,9 @@ use scripture_links::cli::Cli;
 
 fn main() {
     let cli = Cli::parse();
-
+    
     if let Err(e) = cli.execute() {
-        eprintln!("Error: {}", e);
+        eprintln!("Error: {e}");
         std::process::exit(1);
     }
 }

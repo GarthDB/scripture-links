@@ -1,6 +1,9 @@
 //! Command-line interface handling
 
-use crate::json_output::*;
+use crate::json_output::{
+    BatchResponse, ErrorCategory, ErrorInfo, SingleReferenceResponse, TextProcessingResponse,
+    ValidationResponse, create_error_response,
+};
 use crate::{generate_url, parse_scripture_reference, process_text_for_scripture_references};
 use clap::Parser;
 use std::fs;
@@ -40,6 +43,9 @@ pub struct Cli {
 
 impl Cli {
     /// Execute the CLI command
+    /// 
+    /// # Errors
+    /// Returns an error if file operations fail or if invalid arguments are provided
     pub fn execute(self) -> Result<(), CliError> {
         if let Some(ref reference) = self.reference {
             self.handle_single_reference(reference)
@@ -50,7 +56,7 @@ impl Cli {
         } else if let Some(ref file_path) = self.file {
             self.handle_file_processing(file_path)
         } else {
-            self.output_error("Please provide either --reference, --batch, --text, or --file");
+            Self::output_error("Please provide either --reference, --batch, --text, or --file");
             std::process::exit(1);
         }
     }
@@ -73,7 +79,7 @@ impl Cli {
                         };
                         println!("{}", serde_json::to_string_pretty(&response)?);
                     } else {
-                        println!("{}", url);
+                        println!("{url}");
                     }
                 }
                 Err(error) => {
@@ -81,7 +87,7 @@ impl Cli {
                         let response = create_error_response(reference, &error);
                         println!("{}", serde_json::to_string_pretty(&response)?);
                     } else {
-                        self.output_error(&format!("Error: {}", error));
+                        Self::output_error(&format!("Error: {error}"));
                         std::process::exit(1);
                     }
                 }
@@ -91,7 +97,7 @@ impl Cli {
     }
 
     fn handle_batch_references(&self, batch: &str) -> Result<(), CliError> {
-        let references: Vec<&str> = batch.split(',').map(|s| s.trim()).collect();
+        let references: Vec<&str> = batch.split(',').map(str::trim).collect();
         let mut results = Vec::new();
         let mut successful = 0;
         let mut failed = 0;
@@ -106,7 +112,7 @@ impl Cli {
                     };
                     results.push(SingleReferenceResponse {
                         success: true,
-                        input: reference.to_string(),
+                        input: (*reference).to_string(),
                         parsed: Some(scripture),
                         url,
                         error: None,
@@ -161,7 +167,7 @@ impl Cli {
                     };
                     println!("{}", serde_json::to_string_pretty(&response)?);
                 } else {
-                    println!("Valid: {}", reference);
+                    println!("Valid: {reference}");
                 }
             }
             Err(error) => {
@@ -179,7 +185,7 @@ impl Cli {
                     };
                     println!("{}", serde_json::to_string_pretty(&response)?);
                 } else {
-                    println!("Invalid: {} - {}", reference, error);
+                    println!("Invalid: {reference} - {error}");
                 }
             }
         }
@@ -191,7 +197,7 @@ impl Cli {
 
         if self.json {
             // Count references found (rough estimate)
-            let references_found = processed_text.matches("[").count();
+            let references_found = processed_text.matches('[').count();
 
             let response = TextProcessingResponse {
                 success: true,
@@ -202,7 +208,7 @@ impl Cli {
             };
             println!("{}", serde_json::to_string_pretty(&response)?);
         } else {
-            println!("{}", processed_text);
+            println!("{processed_text}");
         }
 
         Ok(())
@@ -215,7 +221,7 @@ impl Cli {
                 if self.json {
                     let _error_info = ErrorInfo::new(
                         "FILE_READ_ERROR",
-                        &format!("Error reading file '{}': {}", file_path, error),
+                        &format!("Error reading file '{file_path}': {error}"),
                         ErrorCategory::FileReadError,
                     );
                     let response = TextProcessingResponse {
@@ -228,7 +234,7 @@ impl Cli {
                     // Note: This is a bit of a hack - we should have a separate FileError response type
                     println!("{}", serde_json::to_string_pretty(&response)?);
                 } else {
-                    self.output_error(&format!("Error reading file '{}': {}", file_path, error));
+                    Self::output_error(&format!("Error reading file '{file_path}': {error}"));
                     std::process::exit(1);
                 }
                 Ok(())
@@ -236,12 +242,8 @@ impl Cli {
         }
     }
 
-    fn output_error(&self, message: &str) {
-        if self.json {
-            // For JSON mode, we should have already handled the error in the calling function
-            eprintln!("{}", message);
-        } else {
-            eprintln!("{}", message);
-        }
+    #[allow(clippy::branches_sharing_code)]
+    fn output_error(message: &str) {
+        eprintln!("{message}");
     }
 }
