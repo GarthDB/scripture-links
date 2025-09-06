@@ -20,16 +20,16 @@ use crate::types::ScriptureReference;
 /// let url = generate_url(&scripture);
 /// assert!(url.contains("https://www.churchofjesuschrist.org/study/scriptures"));
 /// ```
+#[must_use]
 pub fn generate_url(scripture: &ScriptureReference) -> String {
     let base_url = "https://www.churchofjesuschrist.org/study/scriptures";
     let standard_work_path = scripture.standard_work.to_url_path();
     let book_path = &scripture.book;
 
-    let id_param = if let Some(end_verse) = scripture.verse_end {
-        format!("p{}-{}", scripture.verse_start, end_verse)
-    } else {
-        format!("p{}", scripture.verse_start)
-    };
+    let id_param = scripture.verse_end.map_or_else(
+        || format!("p{}", scripture.verse_start),
+        |end_verse| format!("p{}-{}", scripture.verse_start, end_verse),
+    );
 
     let fragment = format!("p{}", scripture.verse_start);
 

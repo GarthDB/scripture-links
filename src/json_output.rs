@@ -97,6 +97,7 @@ impl ErrorInfo {
 }
 
 /// Helper function to create error responses
+#[must_use]
 pub fn create_error_response(input: &str, error_msg: &str) -> SingleReferenceResponse {
     let (code, category) = categorize_error(error_msg);
     let suggestions = extract_suggestions(error_msg);
@@ -121,22 +122,23 @@ pub fn create_error_response(input: &str, error_msg: &str) -> SingleReferenceRes
 fn extract_suggestions(error_msg: &str) -> Option<Vec<String>> {
     if error_msg.contains("Did you mean:") {
         // Extract suggestions from "Did you mean: Philip, Rev.?" format
-        if let Some(suggestions_part) = error_msg.split("Did you mean: ").nth(1) {
-            let suggestions_str = suggestions_part.trim_end_matches('?');
-            let suggestions: Vec<String> = suggestions_str
-                .split(", ")
-                .map(|s| s.trim().to_string())
-                .collect();
-            Some(suggestions)
-        } else {
-            None
-        }
+        error_msg
+            .split("Did you mean: ")
+            .nth(1)
+            .map(|suggestions_part| {
+                let suggestions_str = suggestions_part.trim_end_matches('?');
+                suggestions_str
+                    .split(", ")
+                    .map(|s| s.trim().to_string())
+                    .collect()
+            })
     } else {
         None
     }
 }
 
 /// Categorize error messages for structured responses
+#[must_use]
 pub fn categorize_error(error_msg: &str) -> (String, ErrorCategory) {
     if error_msg.contains("Invalid scripture reference format") {
         ("INVALID_FORMAT".to_string(), ErrorCategory::InvalidFormat)

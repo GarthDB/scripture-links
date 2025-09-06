@@ -16,6 +16,11 @@ use regex::Regex;
 /// let result = process_text_for_scripture_references(input);
 /// assert!(result.contains("[Genesis 1:1]("));
 /// ```
+/// Processes text to find and convert scripture references to markdown links
+///
+/// # Panics
+/// Panics if the regex pattern is invalid (should never happen with hardcoded pattern)
+#[must_use]
 pub fn process_text_for_scripture_references(text: &str) -> String {
     // Create a more comprehensive regex to find scripture references in text
     // This should match patterns like:
@@ -40,7 +45,7 @@ pub fn process_text_for_scripture_references(text: &str) -> String {
 
     // Create the master regex pattern with optional periods
     let book_pattern = all_book_patterns.join("|");
-    let pattern = format!(r"\b({})\s*\.?\s*(\d+):(\d+)(?:-(\d+))?\b", book_pattern);
+    let pattern = format!(r"\b({book_pattern})\s*\.?\s*(\d+):(\d+)(?:-(\d+))?\b");
     let re = Regex::new(&pattern).unwrap();
 
     let mut result = text.to_string();
@@ -55,7 +60,7 @@ pub fn process_text_for_scripture_references(text: &str) -> String {
         // Try to parse this as a scripture reference
         if let Ok(scripture) = parse_scripture_reference(matched_text) {
             let url = generate_url(&scripture);
-            let markdown_link = format!("[{}]({})", matched_text, url);
+            let markdown_link = format!("[{matched_text}]({url})");
 
             // Replace the matched text with the markdown link
             result.replace_range(match_obj.range(), &markdown_link);

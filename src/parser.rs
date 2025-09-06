@@ -38,13 +38,13 @@ pub fn parse_scripture_reference(reference: &str) -> Result<ScriptureReference, 
             .unwrap()
             .as_str()
             .parse()
-            .map_err(|_| format!("Invalid chapter number in reference: {}", reference))?;
+            .map_err(|_| format!("Invalid chapter number in reference: {reference}"))?;
         let verse_start: u32 = captures
             .get(3)
             .unwrap()
             .as_str()
             .parse()
-            .map_err(|_| format!("Invalid verse number in reference: {}", reference))?;
+            .map_err(|_| format!("Invalid verse number in reference: {reference}"))?;
         let verse_end: Option<u32> = captures.get(4).and_then(|m| m.as_str().parse().ok());
 
         // Case-insensitive lookup
@@ -61,7 +61,7 @@ pub fn parse_scripture_reference(reference: &str) -> Result<ScriptureReference, 
             scripture_data::validate_verse_range(book_url, chapter, verse_start, verse_end)?;
 
             Ok(ScriptureReference {
-                book: book_url.to_string(),
+                book: (*book_url).to_string(),
                 chapter,
                 verse_start,
                 verse_end,
@@ -87,8 +87,7 @@ pub fn parse_scripture_reference(reference: &str) -> Result<ScriptureReference, 
 
             if similar.is_empty() {
                 Err(format!(
-                    "Unknown book abbreviation: '{}'. Please check the spelling.",
-                    book_abbrev
+                    "Unknown book abbreviation: '{book_abbrev}'. Please check the spelling."
                 ))
             } else {
                 Err(format!(
@@ -100,8 +99,7 @@ pub fn parse_scripture_reference(reference: &str) -> Result<ScriptureReference, 
         }
     } else {
         Err(format!(
-            "Invalid scripture reference format: '{}'. Expected format: 'Book Chapter:Verse' or 'Book Chapter:Verse-Verse'",
-            reference
+            "Invalid scripture reference format: '{reference}'. Expected format: 'Book Chapter:Verse' or 'Book Chapter:Verse-Verse'"
         ))
     }
 }

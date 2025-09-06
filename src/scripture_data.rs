@@ -1,12 +1,12 @@
-use once_cell::sync::Lazy;
 use std::collections::HashMap;
+use std::sync::LazyLock;
 #[derive(Debug, Clone)]
 pub struct BookInfo {
     pub name: &'static str,
     pub chapters: Vec<u32>, // verse counts per chapter
 }
 // Complete scripture data generated from beandog/lds-scriptures repository
-static SCRIPTURE_DATA: Lazy<HashMap<&'static str, BookInfo>> = Lazy::new(|| {
+static SCRIPTURE_DATA: LazyLock<HashMap<&'static str, BookInfo>> = LazyLock::new(|| {
     let mut map = HashMap::new();
     // OT
     map.insert(
@@ -830,28 +830,30 @@ static SCRIPTURE_DATA: Lazy<HashMap<&'static str, BookInfo>> = Lazy::new(|| {
 pub fn get_book_info(book_key: &str) -> Option<&BookInfo> {
     SCRIPTURE_DATA.get(book_key)
 }
+/// Validates that a chapter number exists for the given book
+///
+/// # Errors
+/// Returns an error if the chapter is 0 or exceeds the book's chapter count
+#[allow(clippy::cast_possible_truncation)]
 pub fn validate_chapter_range(book_key: &str, chapter: u32) -> Result<(), String> {
-    match get_book_info(book_key) {
-        Some(book_info) => {
-            let total_chapters = book_info.chapters.len() as u32;
-            if chapter == 0 {
-                Err("Chapter number must be greater than 0".to_string())
-            } else if chapter > total_chapters {
-                Err(format!(
-                    "Chapter {} does not exist in {}. {} has {} chapters (1-{})",
-                    chapter, book_info.name, book_info.name, total_chapters, total_chapters
-                ))
-            } else {
-                Ok(())
-            }
-        }
-        None => {
-            // If we don't have data for this book, we can't validate
-            // This allows the system to work with books we haven't included yet
+    get_book_info(book_key).map_or(Ok(()), |book_info| {
+        let total_chapters = book_info.chapters.len() as u32;
+        if chapter == 0 {
+            Err("Chapter number must be greater than 0".to_string())
+        } else if chapter > total_chapters {
+            Err(format!(
+                "Chapter {chapter} does not exist in {}. {} has {total_chapters} chapters (1-{total_chapters})",
+                book_info.name, book_info.name
+            ))
+        } else {
             Ok(())
         }
-    }
+    })
 }
+/// Validates that verse numbers exist within the given chapter
+///
+/// # Errors
+/// Returns an error if verses are 0, exceed the chapter's verse count, or end < start
 pub fn validate_verse_range(
     book_key: &str,
     chapter: u32,
@@ -878,8 +880,7 @@ pub fn validate_verse_range(
             if let Some(end_verse) = verse_end {
                 if end_verse < verse_start {
                     return Err(format!(
-                        "End verse ({}) cannot be less than start verse ({})",
-                        end_verse, verse_start
+                        "End verse ({end_verse}) cannot be less than start verse ({verse_start})"
                     ));
                 }
                 if end_verse > total_verses {

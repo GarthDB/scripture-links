@@ -24,13 +24,14 @@ pub enum StandardWork {
 
 impl StandardWork {
     /// Convert to URL path component
-    pub fn to_url_path(&self) -> &'static str {
+    #[must_use]
+    pub const fn to_url_path(&self) -> &'static str {
         match self {
-            StandardWork::OldTestament => "ot",
-            StandardWork::NewTestament => "nt",
-            StandardWork::BookOfMormon => "bofm",
-            StandardWork::DoctrineAndCovenants => "dc-testament",
-            StandardWork::PearlOfGreatPrice => "pgp",
+            Self::OldTestament => "ot",
+            Self::NewTestament => "nt",
+            Self::BookOfMormon => "bofm",
+            Self::DoctrineAndCovenants => "dc-testament",
+            Self::PearlOfGreatPrice => "pgp",
         }
     }
 }

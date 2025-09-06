@@ -24,13 +24,13 @@ mod tests {
             let url = generate_url(&scripture);
 
             // All generated URLs should contain these required components
-            let expected_path = format!("gen/{}", chapter);
+            let expected_path = format!("gen/{chapter}");
             prop_assert!(url.contains("https://www.churchofjesuschrist.org/study/scriptures"));
             prop_assert!(url.contains("lang=eng"));
             prop_assert!(url.contains(&expected_path));
-            let expected_id = format!("id=p{}", verse_start);
+            let expected_id = format!("id=p{verse_start}");
             prop_assert!(url.contains(&expected_id));
-            let expected_fragment = format!("#p{}", verse_start);
+            let expected_fragment = format!("#p{verse_start}");
             prop_assert!(url.contains(&expected_fragment));
         }
 
@@ -41,7 +41,7 @@ mod tests {
         ) {
             use crate::process_text_for_scripture_references;
 
-            let text = format!("{}Genesis 1:1{}", prefix, suffix);
+            let text = format!("{prefix}Genesis 1:1{suffix}");
             let result = process_text_for_scripture_references(&text);
 
             // Should preserve prefix and suffix text (spaces)
