@@ -154,6 +154,26 @@ pub fn create_abbreviation_map() -> AbbreviationMap {
     map.insert("JS—H", ("js-h", StandardWork::PearlOfGreatPrice));
     map.insert("A of F", ("a-of-f", StandardWork::PearlOfGreatPrice));
 
+    // Study Helps - these use different URL patterns than scripture books
+    map.insert("JST", ("jst", StandardWork::StudyHelps)); // Joseph Smith Translation
+    map.insert("TG", ("tg", StandardWork::StudyHelps)); // Topical Guide
+    map.insert("BD", ("bd", StandardWork::StudyHelps)); // Bible Dictionary
+    map.insert("IT", ("it", StandardWork::StudyHelps)); // Index to the Triple Combination
+    map.insert("GS", ("gs", StandardWork::StudyHelps)); // Guide to the Scriptures
+    map.insert("HC", ("hc", StandardWork::StudyHelps)); // History of the Church
+
+    // Note: HEB, GR, IE, OR are footnote markers, not standalone Study Helps
+
+    // Study Helps - Full names for common ones
+    map.insert(
+        "Joseph Smith Translation",
+        ("jst", StandardWork::StudyHelps),
+    );
+    map.insert("Topical Guide", ("tg", StandardWork::StudyHelps));
+    map.insert("Bible Dictionary", ("bd", StandardWork::StudyHelps));
+    map.insert("Guide to the Scriptures", ("gs", StandardWork::StudyHelps));
+    map.insert("History of the Church", ("hc", StandardWork::StudyHelps));
+
     map
 }
 
@@ -171,6 +191,20 @@ mod tests {
         assert!(map.contains_key("1 Ne"));
         assert!(map.contains_key("D&C"));
         assert!(map.contains_key("Moses"));
+
+        // Test Study Helps abbreviations
+        assert!(map.contains_key("JST"));
+        assert!(map.contains_key("TG"));
+        assert!(map.contains_key("BD"));
+        assert!(map.contains_key("IT"));
+        assert!(map.contains_key("GS"));
+        assert!(map.contains_key("HC"));
+
+        // These are footnote markers, not Study Helps
+        assert!(!map.contains_key("HEB"));
+        assert!(!map.contains_key("GR"));
+        assert!(!map.contains_key("IE"));
+        assert!(!map.contains_key("OR"));
     }
 
     #[test]

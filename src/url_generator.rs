@@ -2,6 +2,30 @@
 
 use crate::types::ScriptureReference;
 
+/// Convert a topic name to a URL slug
+/// Examples: "Aaron, Brother of Moses" -> "aaron-brother-of-moses"
+///           "Faith" -> "faith"
+fn topic_to_slug(topic: &str) -> String {
+    topic
+        .to_lowercase()
+        .chars()
+        .map(|c| {
+            if c.is_alphanumeric() {
+                c
+            } else if c.is_whitespace() || c == ',' || c == '.' {
+                '-'
+            } else {
+                c // Keep other characters as-is for now
+            }
+        })
+        .collect::<String>()
+        // Remove multiple consecutive dashes and trim dashes from ends
+        .split('-')
+        .filter(|s| !s.is_empty())
+        .collect::<Vec<_>>()
+        .join("-")
+}
+
 /// Generate a URL for a scripture reference on ChurchofJesusChrist.org
 ///
 /// # Examples
@@ -15,6 +39,7 @@ use crate::types::ScriptureReference;
 ///     verse_start: 1,
 ///     verse_end: None,
 ///     standard_work: StandardWork::OldTestament,
+///     topic: None,
 /// };
 ///
 /// let url = generate_url(&scripture);
@@ -23,6 +48,31 @@ use crate::types::ScriptureReference;
 #[must_use]
 pub fn generate_url(scripture: &ScriptureReference) -> String {
     let base_url = "https://www.churchofjesuschrist.org/study/scriptures";
+
+    // Study Helps use different URL patterns
+    if scripture.standard_work.is_study_help() {
+        if let Some(topic) = &scripture.topic {
+            let slug = topic_to_slug(topic);
+            // Different Study Helps have different URL patterns
+            match scripture.book.as_str() {
+                "it" => {
+                    // Index to the Triple Combination uses "triple-index" in URL
+                    return format!("{base_url}/triple-index/{slug}?lang=eng");
+                }
+                _ => {
+                    // Other Study Helps use the abbreviation directly
+                    return format!("{base_url}/{}/{}?lang=eng", scripture.book, slug);
+                }
+            }
+        }
+        // If no topic specified, link to the main study help page
+        match scripture.book.as_str() {
+            "it" => return format!("{base_url}/triple-index?lang=eng"),
+            _ => return format!("{base_url}/{}?lang=eng", scripture.book),
+        }
+    }
+
+    // Regular scripture references
     let standard_work_path = scripture.standard_work.to_url_path();
     let book_path = &scripture.book;
 
@@ -52,6 +102,7 @@ mod tests {
             verse_start: 5,
             verse_end: None,
             standard_work: StandardWork::OldTestament,
+            topic: None,
         };
         let url = generate_url(&scripture);
         assert_eq!(
@@ -68,6 +119,7 @@ mod tests {
             verse_start: 14,
             verse_end: Some(15),
             standard_work: StandardWork::BookOfMormon,
+            topic: None,
         };
         let url = generate_url(&scripture);
         assert_eq!(
@@ -84,6 +136,7 @@ mod tests {
             verse_start: 3,
             verse_end: Some(4),
             standard_work: StandardWork::NewTestament,
+            topic: None,
         };
         let url = generate_url(&scripture);
 
@@ -92,5 +145,111 @@ mod tests {
         assert!(url.contains("lang=eng"));
         assert!(url.contains("id=p3-4"));
         assert!(url.contains("#p3"));
+    }
+
+    #[test]
+    fn test_generate_url_study_helps() {
+        let topical_guide = ScriptureReference {
+            book: "tg".to_string(),
+            chapter: 1, // These values are not used for Study Helps
+            verse_start: 1,
+            verse_end: None,
+            standard_work: StandardWork::StudyHelps,
+            topic: Some("faith".to_string()),
+        };
+        let url = generate_url(&topical_guide);
+        assert_eq!(
+            url,
+            "https://www.churchofjesuschrist.org/study/scriptures/tg/faith?lang=eng"
+        );
+
+        let bible_dictionary = ScriptureReference {
+            book: "bd".to_string(),
+            chapter: 1,
+            verse_start: 1,
+            verse_end: None,
+            standard_work: StandardWork::StudyHelps,
+            topic: Some("abraham".to_string()),
+        };
+        let url = generate_url(&bible_dictionary);
+        assert_eq!(
+            url,
+            "https://www.churchofjesuschrist.org/study/scriptures/bd/abraham?lang=eng"
+        );
+
+        let jst = ScriptureReference {
+            book: "jst".to_string(),
+            chapter: 1,
+            verse_start: 1,
+            verse_end: None,
+            standard_work: StandardWork::StudyHelps,
+            topic: None, // JST might not have specific topics
+        };
+        let url = generate_url(&jst);
+        assert_eq!(
+            url,
+            "https://www.churchofjesuschrist.org/study/scriptures/jst?lang=eng"
+        );
+    }
+
+    #[test]
+    fn test_topic_to_slug() {
+        assert_eq!(topic_to_slug("Abel"), "abel");
+        assert_eq!(
+            topic_to_slug("Aaron, Brother of Moses"),
+            "aaron-brother-of-moses"
+        );
+        assert_eq!(topic_to_slug("Faith"), "faith");
+        assert_eq!(topic_to_slug("Jesus Christ"), "jesus-christ");
+        assert_eq!(topic_to_slug("Plan of Salvation"), "plan-of-salvation");
+    }
+
+    #[test]
+    fn test_study_helps_with_complex_topics() {
+        let complex_topic = ScriptureReference {
+            book: "gs".to_string(),
+            chapter: 1,
+            verse_start: 1,
+            verse_end: None,
+            standard_work: StandardWork::StudyHelps,
+            topic: Some("Aaron, Brother of Moses".to_string()),
+        };
+        let url = generate_url(&complex_topic);
+        assert_eq!(
+            url,
+            "https://www.churchofjesuschrist.org/study/scriptures/gs/aaron-brother-of-moses?lang=eng"
+        );
+    }
+
+    #[test]
+    fn test_index_to_triple_combination_url() {
+        let it_entry = ScriptureReference {
+            book: "it".to_string(),
+            chapter: 1,
+            verse_start: 1,
+            verse_end: None,
+            standard_work: StandardWork::StudyHelps,
+            topic: Some("Accountability, Age of".to_string()),
+        };
+        let url = generate_url(&it_entry);
+        assert_eq!(
+            url,
+            "https://www.churchofjesuschrist.org/study/scriptures/triple-index/accountability-age-of?lang=eng"
+        );
+
+        // Test without topic
+        let it_main = ScriptureReference {
+            book: "it".to_string(),
+            chapter: 1,
+            verse_start: 1,
+            verse_end: None,
+            standard_work: StandardWork::StudyHelps,
+            topic: None,
+        };
+        let url = generate_url(&it_main);
+        assert_eq!(
+            url,
+            "https://www.churchofjesuschrist.org/study/scriptures/triple-index?lang=eng"
+        );
     }
 }

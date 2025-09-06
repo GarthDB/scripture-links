@@ -20,6 +20,7 @@ mod tests {
                 verse_start,
                 verse_end,
                 standard_work: StandardWork::OldTestament,
+                topic: None,
             };
             let url = generate_url(&scripture);
 

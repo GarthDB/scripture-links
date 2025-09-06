@@ -16,7 +16,7 @@ pub mod wasm;
 
 // Re-export the main types and functions for easy use
 pub use parser::parse_scripture_reference;
-pub use text_processor::process_text_for_scripture_references;
+pub use text_processor::{process_text_for_scripture_references, process_text_with_options};
 pub use types::{ScriptureReference, StandardWork};
 pub use url_generator::generate_url;
 

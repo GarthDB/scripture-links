@@ -168,6 +168,7 @@ mod tests {
             verse_start: 1,
             verse_end: None,
             standard_work: StandardWork::OldTestament,
+            topic: None,
         };
 
         let response = SingleReferenceResponse {
@@ -272,6 +273,7 @@ mod tests {
                 chapter: 1,
                 verse_start: 1,
                 verse_end: None,
+                topic: None,
                 standard_work: StandardWork::OldTestament,
             }),
             error: None,

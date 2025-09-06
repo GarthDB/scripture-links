@@ -78,7 +78,9 @@ pub fn parse_scripture_reference(reference: &str) -> Result<ScriptureReference, 
                     StandardWork::BookOfMormon => StandardWork::BookOfMormon,
                     StandardWork::DoctrineAndCovenants => StandardWork::DoctrineAndCovenants,
                     StandardWork::PearlOfGreatPrice => StandardWork::PearlOfGreatPrice,
+                    StandardWork::StudyHelps => StandardWork::StudyHelps,
                 },
+                topic: None, // Regular scripture references don't have topics
             })
         } else {
             // Find similar abbreviations for suggestions (case-insensitive)
