@@ -11,9 +11,9 @@ targets = [
 db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
 vulnerability = "deny"
-unmaintained = "warn"
-yanked = "warn"
-notice = "warn"
+unmaintained = "all"
+yanked = "all"
+notice = "all"
 ignore = []
 
 [licenses]
@@ -36,7 +36,7 @@ deny = [
 ]
 
 [bans]
-multiple-versions = "warn"
+multiple-versions = "all"
 wildcards = "allow"
 highlight = "all"
 workspace-default-features = "allow"
@@ -44,6 +44,6 @@ external-default-features = "allow"
 deny = []
 
 [sources]
-unknown-registry = "warn"
-unknown-git = "warn"
+unknown-registry = "all"
+unknown-git = "all"
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
