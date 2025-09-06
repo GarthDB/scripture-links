@@ -256,4 +256,91 @@ mod tests {
             &("1-ne", StandardWork::BookOfMormon)
         );
     }
+
+    #[test]
+    fn test_study_helps_abbreviations() {
+        let map = create_abbreviation_map();
+
+        // Test all Study Helps abbreviations
+        let study_helps = vec![
+            ("JST", "jst"),
+            ("TG", "tg"),
+            ("BD", "bd"),
+            ("IT", "it"),
+            ("GS", "gs"),
+            ("HC", "hc"),
+        ];
+
+        for (abbrev, expected_slug) in study_helps {
+            let (slug, standard_work) = map.get(abbrev).unwrap();
+            assert_eq!(*slug, expected_slug);
+            assert_eq!(*standard_work, StandardWork::StudyHelps);
+        }
+    }
+
+    #[test]
+    fn test_study_helps_full_names() {
+        let map = create_abbreviation_map();
+
+        // Test full names for Study Helps
+        let full_names = vec![
+            ("Joseph Smith Translation", "jst"),
+            ("Topical Guide", "tg"),
+            ("Bible Dictionary", "bd"),
+            ("Guide to the Scriptures", "gs"),
+            ("History of the Church", "hc"),
+        ];
+
+        for (full_name, expected_slug) in full_names {
+            let (slug, standard_work) = map.get(full_name).unwrap();
+            assert_eq!(*slug, expected_slug);
+            assert_eq!(*standard_work, StandardWork::StudyHelps);
+        }
+    }
+
+    #[test]
+    fn test_excluded_footnote_markers() {
+        let map = create_abbreviation_map();
+
+        // These should NOT be in the map as they are footnote markers, not Study Helps
+        let footnote_markers = vec!["HEB", "GR", "IE", "OR"];
+
+        for marker in footnote_markers {
+            assert!(
+                !map.contains_key(marker),
+                "Footnote marker {marker} should not be in abbreviation map"
+            );
+        }
+    }
+
+    #[test]
+    fn test_study_helps_case_sensitivity() {
+        let map = create_abbreviation_map();
+
+        // Study Helps abbreviations should be case-sensitive (uppercase only)
+        assert!(map.contains_key("TG"));
+        assert!(map.contains_key("BD"));
+        assert!(map.contains_key("JST"));
+
+        // Lowercase versions should not exist
+        assert!(!map.contains_key("tg"));
+        assert!(!map.contains_key("bd"));
+        assert!(!map.contains_key("jst"));
+    }
+
+    #[test]
+    fn test_study_helps_vs_scripture_separation() {
+        let map = create_abbreviation_map();
+
+        // Verify Study Helps are properly categorized
+        let (_, tg_work) = map.get("TG").unwrap();
+        assert!(tg_work.is_study_help());
+        assert_ne!(*tg_work, StandardWork::OldTestament);
+        assert_ne!(*tg_work, StandardWork::NewTestament);
+
+        // Verify regular scriptures are not Study Helps
+        let (_, gen_work) = map.get("Gen").unwrap();
+        assert!(!gen_work.is_study_help());
+        assert_eq!(*gen_work, StandardWork::OldTestament);
+    }
 }

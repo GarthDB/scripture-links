@@ -264,4 +264,94 @@ mod tests {
         assert!(result.contains("ot/gen/1"));
         assert!(result.contains("tg/creation"));
     }
+
+    #[test]
+    fn test_study_helps_boundary_words() {
+        let input = "See TG Faith and TG Hope for understanding.";
+        let result = process_text_with_options(input, true);
+
+        // Should stop at "and" boundary word
+        assert!(result.contains("[TG Faith]("));
+        assert!(result.contains("[TG Hope]("));
+        assert!(!result.contains("[TG Faith and TG Hope]("));
+    }
+
+    #[test]
+    fn test_study_helps_punctuation_boundaries() {
+        let input = "Check TG Faith. Also see BD Abraham; and GS Moses!";
+        let result = process_text_with_options(input, true);
+
+        // Should stop at punctuation
+        assert!(result.contains("[TG Faith]("));
+        assert!(result.contains("[BD Abraham]("));
+        assert!(result.contains("[GS Moses]("));
+        assert!(result.contains("tg/faith"));
+        assert!(result.contains("bd/abraham"));
+        assert!(result.contains("gs/moses"));
+    }
+
+    #[test]
+    fn test_study_helps_end_of_string() {
+        let input = "See TG Faith";
+        let result = process_text_with_options(input, true);
+
+        assert!(result.contains("[TG Faith]("));
+        assert!(result.contains("tg/faith"));
+    }
+
+    #[test]
+    fn test_study_helps_multiple_same_type() {
+        // The regex stops at boundary words like "and", so this needs to be structured differently
+        let input = "Read TG Faith. Also TG Hope. And TG Charity.";
+        let result = process_text_with_options(input, true);
+
+        assert!(result.contains("[TG Faith]("));
+        assert!(result.contains("[TG Hope]("));
+        assert!(result.contains("[TG Charity]("));
+    }
+
+    #[test]
+    fn test_study_helps_case_sensitivity() {
+        let input = "See tg faith and TG HOPE.";
+        let result = process_text_with_options(input, true);
+
+        // Should match TG but not tg (case sensitive abbreviations)
+        assert!(!result.contains("[tg faith]("));
+        assert!(result.contains("[TG HOPE]("));
+    }
+
+    #[test]
+    fn test_study_helps_with_numbers_in_topic() {
+        // Topics must start with capital letter per regex pattern
+        let input = "Check GS Nephi and BD Abraham.";
+        let result = process_text_with_options(input, true);
+
+        assert!(result.contains("[GS Nephi]("));
+        assert!(result.contains("[BD Abraham]("));
+        assert!(result.contains("gs/nephi"));
+        assert!(result.contains("bd/abraham"));
+    }
+
+    #[test]
+    fn test_study_helps_special_characters_in_topic() {
+        let input = "See BD Aaron and GS Jesus Christ.";
+        let result = process_text_with_options(input, true);
+
+        assert!(result.contains("[BD Aaron]("));
+        assert!(result.contains("[GS Jesus Christ]("));
+        // Special characters should be handled in slug conversion
+        assert!(result.contains("bd/aaron"));
+        assert!(result.contains("gs/jesus-christ"));
+    }
+
+    #[test]
+    fn test_study_helps_no_false_matches_with_lowercase() {
+        let input = "The bd file and tg settings are important.";
+        let result = process_text_with_options(input, true);
+
+        // Lowercase abbreviations should not match
+        assert_eq!(result, input);
+        assert!(!result.contains("[bd file]("));
+        assert!(!result.contains("[tg settings]("));
+    }
 }

@@ -15,6 +15,7 @@ pub type CliError = Box<dyn std::error::Error>;
 #[derive(Parser)]
 #[command(name = "scripture-links")]
 #[command(about = "Generate links to scriptures on ChurchofJesusChrist.org")]
+#[command(version)]
 pub struct Cli {
     /// Scripture reference (e.g., "Isa. 6:5", "2 Ne. 10:14-15")
     #[arg(short, long, group = "input")]

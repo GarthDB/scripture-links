@@ -320,6 +320,45 @@ fn test_cli_validate_only_error_non_json() {
 }
 
 #[test]
+fn test_cli_version_flag() {
+    let output = Command::new("cargo")
+        .args(["run", "--", "--version"])
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("scripture-links"));
+    assert!(stdout.contains("1.2.0")); // Current version
+}
+
+#[test]
+fn test_cli_version_short_flag() {
+    let output = Command::new("cargo")
+        .args(["run", "--", "-V"])
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("scripture-links"));
+    assert!(stdout.contains("1.2.0")); // Current version
+}
+
+#[test]
+fn test_cli_help_shows_version() {
+    let output = Command::new("cargo")
+        .args(["run", "--", "--help"])
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("-V, --version"));
+    assert!(stdout.contains("Print version"));
+}
+
+#[test]
 fn test_cli_validate_only_error_json() {
     let output = Command::new("cargo")
         .args([

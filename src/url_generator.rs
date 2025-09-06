@@ -252,4 +252,76 @@ mod tests {
             "https://www.churchofjesuschrist.org/study/scriptures/triple-index?lang=eng"
         );
     }
+
+    #[test]
+    fn test_topic_to_slug_edge_cases() {
+        // Empty string
+        assert_eq!(topic_to_slug(""), "");
+
+        // Only punctuation
+        assert_eq!(topic_to_slug("..."), "");
+
+        // Leading/trailing spaces and punctuation
+        assert_eq!(topic_to_slug("  Faith  "), "faith");
+        assert_eq!(topic_to_slug("...Faith..."), "faith");
+
+        // Numbers
+        assert_eq!(topic_to_slug("3 Nephi"), "3-nephi");
+        assert_eq!(topic_to_slug("2nd Coming"), "2nd-coming");
+
+        // Special characters (apostrophes are kept as-is)
+        assert_eq!(topic_to_slug("Aaron's Rod"), "aaron's-rod");
+        assert_eq!(
+            topic_to_slug("Jesus Christ's Atonement"),
+            "jesus-christ's-atonement"
+        );
+
+        // Mixed case
+        assert_eq!(topic_to_slug("FAITH"), "faith");
+        assert_eq!(topic_to_slug("FaItH"), "faith");
+    }
+
+    #[test]
+    fn test_all_study_helps_abbreviations() {
+        let test_cases = vec![
+            ("jst", "joseph-smith-translation"),
+            ("tg", "topical-guide"),
+            ("bd", "bible-dictionary"),
+            ("gs", "guide-to-scriptures"),
+            ("hc", "history-of-church"),
+        ];
+
+        for (abbrev, topic) in test_cases {
+            let scripture = ScriptureReference {
+                book: abbrev.to_string(),
+                chapter: 1,
+                verse_start: 1,
+                verse_end: None,
+                standard_work: StandardWork::StudyHelps,
+                topic: Some(topic.replace('-', " ")),
+            };
+
+            let url = generate_url(&scripture);
+            assert!(url.contains(&format!("scriptures/{abbrev}/{topic}")));
+            assert!(url.contains("lang=eng"));
+        }
+    }
+
+    #[test]
+    fn test_study_helps_url_encoding() {
+        // Test that topics with special characters are properly handled
+        let scripture = ScriptureReference {
+            book: "bd".to_string(),
+            chapter: 1,
+            verse_start: 1,
+            verse_end: None,
+            standard_work: StandardWork::StudyHelps,
+            topic: Some("Aaron's Rod & Staff".to_string()),
+        };
+
+        let url = generate_url(&scripture);
+        // Should convert to slug format (apostrophes and & kept as-is)
+        assert!(url.contains("bd/aaron's-rod-&-staff"));
+        assert!(url.contains("lang=eng"));
+    }
 }
