@@ -43,7 +43,7 @@ pub struct Cli {
 
 impl Cli {
     /// Execute the CLI command
-    /// 
+    ///
     /// # Errors
     /// Returns an error if file operations fail or if invalid arguments are provided
     pub fn execute(self) -> Result<(), CliError> {

@@ -10,18 +10,18 @@ use regex::Regex;
 /// # Examples
 ///
 /// ```
-/// use scripture_links::parse_scripture_reference;
+/// use scripture_links_lib::parse_scripture_reference;
 ///
 /// let result = parse_scripture_reference("Genesis 1:1").unwrap();
 /// assert_eq!(result.book, "gen");
 /// assert_eq!(result.chapter, 1);
 /// assert_eq!(result.verse_start, 1);
 /// ```
-/// 
+///
 /// # Errors
 /// Returns an error if the reference format is invalid, the book is unknown,
 /// or if chapter/verse numbers are invalid.
-/// 
+///
 /// # Panics
 /// Panics if the internal regex pattern is invalid (should never happen).
 pub fn parse_scripture_reference(reference: &str) -> Result<ScriptureReference, String> {

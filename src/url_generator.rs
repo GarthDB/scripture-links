@@ -7,7 +7,7 @@ use crate::types::ScriptureReference;
 /// # Examples
 ///
 /// ```
-/// use scripture_links::{ScriptureReference, StandardWork, generate_url};
+/// use scripture_links_lib::{ScriptureReference, StandardWork, generate_url};
 ///
 /// let scripture = ScriptureReference {
 ///     book: "gen".to_string(),

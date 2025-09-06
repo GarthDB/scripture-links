@@ -1,5 +1,5 @@
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
-use scripture_links::{parse_scripture_reference, process_text_for_scripture_references};
+use scripture_links_lib::{parse_scripture_reference, process_text_for_scripture_references};
 
 fn benchmark_single_reference_parsing(c: &mut Criterion) {
     c.bench_function("parse single reference", |b| {

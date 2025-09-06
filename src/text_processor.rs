@@ -10,7 +10,7 @@ use regex::Regex;
 /// # Examples
 ///
 /// ```
-/// use scripture_links::process_text_for_scripture_references;
+/// use scripture_links_lib::process_text_for_scripture_references;
 ///
 /// let input = "See Genesis 1:1 for the creation story";
 /// let result = process_text_for_scripture_references(input);
