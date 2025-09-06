@@ -1,9 +1,9 @@
 //! Command-line interface handling
 
+use crate::json_output::*;
+use crate::{generate_url, parse_scripture_reference, process_text_for_scripture_references};
 use clap::Parser;
 use std::fs;
-use crate::{parse_scripture_reference, generate_url, process_text_for_scripture_references};
-use crate::json_output::*;
 
 /// Custom error type for CLI operations
 pub type CliError = Box<dyn std::error::Error>;
@@ -62,7 +62,7 @@ impl Cli {
             match parse_scripture_reference(reference) {
                 Ok(scripture) => {
                     let url = generate_url(&scripture);
-                    
+
                     if self.json {
                         let response = SingleReferenceResponse {
                             success: true,
@@ -99,7 +99,11 @@ impl Cli {
         for reference in &references {
             match parse_scripture_reference(reference) {
                 Ok(scripture) => {
-                    let url = if self.validate_only { None } else { Some(generate_url(&scripture)) };
+                    let url = if self.validate_only {
+                        None
+                    } else {
+                        Some(generate_url(&scripture))
+                    };
                     results.push(SingleReferenceResponse {
                         success: true,
                         input: reference.to_string(),
@@ -184,11 +188,11 @@ impl Cli {
 
     fn handle_text_processing(&self, text: &str) -> Result<(), CliError> {
         let processed_text = process_text_for_scripture_references(text);
-        
+
         if self.json {
             // Count references found (rough estimate)
             let references_found = processed_text.matches("[").count();
-            
+
             let response = TextProcessingResponse {
                 success: true,
                 input_text: text.to_string(),
@@ -200,15 +204,13 @@ impl Cli {
         } else {
             println!("{}", processed_text);
         }
-        
+
         Ok(())
     }
 
     fn handle_file_processing(&self, file_path: &str) -> Result<(), CliError> {
         match fs::read_to_string(file_path) {
-            Ok(file_content) => {
-                self.handle_text_processing(&file_content)
-            }
+            Ok(file_content) => self.handle_text_processing(&file_content),
             Err(error) => {
                 if self.json {
                     let _error_info = ErrorInfo::new(

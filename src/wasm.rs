@@ -1,8 +1,8 @@
 //! WASM bindings for the scripture links library
 
+use crate::json_output::{SingleReferenceResponse, create_error_response};
+use crate::{generate_url, parse_scripture_reference, process_text_for_scripture_references};
 use wasm_bindgen::prelude::*;
-use crate::{parse_scripture_reference, generate_url, process_text_for_scripture_references};
-use crate::json_output::{create_error_response, SingleReferenceResponse};
 
 // Enable `console.log` for debugging
 #[wasm_bindgen]
@@ -45,7 +45,7 @@ impl ScriptureLinkResult {
 #[wasm_bindgen]
 pub fn parse_reference(reference: &str) -> ScriptureLinkResult {
     console_log!("Parsing reference: {}", reference);
-    
+
     match parse_scripture_reference(reference) {
         Ok(scripture) => {
             let url = generate_url(&scripture);
@@ -55,13 +55,11 @@ pub fn parse_reference(reference: &str) -> ScriptureLinkResult {
                 error: None,
             }
         }
-        Err(error) => {
-            ScriptureLinkResult {
-                success: false,
-                result: String::new(),
-                error: Some(error),
-            }
-        }
+        Err(error) => ScriptureLinkResult {
+            success: false,
+            result: String::new(),
+            error: Some(error),
+        },
     }
 }
 
@@ -69,7 +67,7 @@ pub fn parse_reference(reference: &str) -> ScriptureLinkResult {
 #[wasm_bindgen]
 pub fn parse_reference_json(reference: &str) -> JsValue {
     console_log!("Parsing reference (JSON): {}", reference);
-    
+
     let response = match parse_scripture_reference(reference) {
         Ok(scripture) => {
             let url = generate_url(&scripture);
@@ -81,11 +79,9 @@ pub fn parse_reference_json(reference: &str) -> JsValue {
                 error: None,
             }
         }
-        Err(error) => {
-            create_error_response(reference, &error)
-        }
+        Err(error) => create_error_response(reference, &error),
     };
-    
+
     serde_wasm_bindgen::to_value(&response).unwrap_or_else(|_| JsValue::NULL)
 }
 
@@ -121,7 +117,8 @@ pub fn get_supported_formats() -> String {
     "D&C 128:22-23",
     "Moses 1:39"
   ]
-}"#.to_string()
+}"#
+    .to_string()
 }
 
 /// Initialize the WASM module (called when module loads)
@@ -138,7 +135,11 @@ mod tests {
     fn test_wasm_parse_reference() {
         let result = parse_reference("Genesis 1:1");
         assert!(result.success());
-        assert!(result.result().contains("https://www.churchofjesuschrist.org"));
+        assert!(
+            result
+                .result()
+                .contains("https://www.churchofjesuschrist.org")
+        );
         assert!(result.error().is_none());
     }
 

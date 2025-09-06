@@ -13,7 +13,7 @@ mod tests {
             verse_end in proptest::option::of(1u32..200)
         ) {
             use crate::{ScriptureReference, StandardWork, generate_url};
-            
+
             let scripture = ScriptureReference {
                 book: "gen".to_string(),
                 chapter,
@@ -22,7 +22,7 @@ mod tests {
                 standard_work: StandardWork::OldTestament,
             };
             let url = generate_url(&scripture);
-            
+
             // All generated URLs should contain these required components
             let expected_path = format!("gen/{}", chapter);
             prop_assert!(url.contains("https://www.churchofjesuschrist.org/study/scriptures"));
@@ -40,10 +40,10 @@ mod tests {
             suffix in r"[ ]{0,10}"
         ) {
             use crate::process_text_for_scripture_references;
-            
+
             let text = format!("{}Genesis 1:1{}", prefix, suffix);
             let result = process_text_for_scripture_references(&text);
-            
+
             // Should preserve prefix and suffix text (spaces)
             if !prefix.is_empty() {
                 prop_assert!(result.starts_with(&prefix) || result.contains(&prefix));
@@ -51,7 +51,7 @@ mod tests {
             if !suffix.is_empty() {
                 prop_assert!(result.ends_with(&suffix) || result.contains(&suffix));
             }
-            
+
             // Should contain markdown link (only when word boundaries allow it)
             prop_assert!(result.contains("[Genesis 1:1]("));
         }

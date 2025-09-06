@@ -3,12 +3,12 @@
 use crate::types::ScriptureReference;
 
 /// Generate a URL for a scripture reference on ChurchofJesusChrist.org
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use scripture_links::{ScriptureReference, StandardWork, generate_url};
-/// 
+///
 /// let scripture = ScriptureReference {
 ///     book: "gen".to_string(),
 ///     chapter: 1,
@@ -16,7 +16,7 @@ use crate::types::ScriptureReference;
 ///     verse_end: None,
 ///     standard_work: StandardWork::OldTestament,
 /// };
-/// 
+///
 /// let url = generate_url(&scripture);
 /// assert!(url.contains("https://www.churchofjesuschrist.org/study/scriptures"));
 /// ```
@@ -24,17 +24,19 @@ pub fn generate_url(scripture: &ScriptureReference) -> String {
     let base_url = "https://www.churchofjesuschrist.org/study/scriptures";
     let standard_work_path = scripture.standard_work.to_url_path();
     let book_path = &scripture.book;
-    
+
     let id_param = if let Some(end_verse) = scripture.verse_end {
         format!("p{}-{}", scripture.verse_start, end_verse)
     } else {
         format!("p{}", scripture.verse_start)
     };
-    
+
     let fragment = format!("p{}", scripture.verse_start);
-    
-    format!("{}/{}/{}/{}?lang=eng&id={}#{}", 
-            base_url, standard_work_path, book_path, scripture.chapter, id_param, fragment)
+
+    format!(
+        "{}/{}/{}/{}?lang=eng&id={}#{}",
+        base_url, standard_work_path, book_path, scripture.chapter, id_param, fragment
+    )
 }
 
 #[cfg(test)]
@@ -52,7 +54,10 @@ mod tests {
             standard_work: StandardWork::OldTestament,
         };
         let url = generate_url(&scripture);
-        assert_eq!(url, "https://www.churchofjesuschrist.org/study/scriptures/ot/isa/6?lang=eng&id=p5#p5");
+        assert_eq!(
+            url,
+            "https://www.churchofjesuschrist.org/study/scriptures/ot/isa/6?lang=eng&id=p5#p5"
+        );
     }
 
     #[test]
@@ -65,7 +70,10 @@ mod tests {
             standard_work: StandardWork::BookOfMormon,
         };
         let url = generate_url(&scripture);
-        assert_eq!(url, "https://www.churchofjesuschrist.org/study/scriptures/bofm/2-ne/10?lang=eng&id=p14-15#p14");
+        assert_eq!(
+            url,
+            "https://www.churchofjesuschrist.org/study/scriptures/bofm/2-ne/10?lang=eng&id=p14-15#p14"
+        );
     }
 
     #[test]
@@ -78,12 +86,11 @@ mod tests {
             standard_work: StandardWork::NewTestament,
         };
         let url = generate_url(&scripture);
-        
+
         assert!(url.contains("https://www.churchofjesuschrist.org/study/scriptures"));
         assert!(url.contains("nt/matt/5"));
         assert!(url.contains("lang=eng"));
         assert!(url.contains("id=p3-4"));
         assert!(url.contains("#p3"));
     }
-
 }

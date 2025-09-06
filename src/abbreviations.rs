@@ -1,7 +1,7 @@
 //! Scripture book abbreviations and mappings
 
-use std::collections::HashMap;
 use crate::types::StandardWork;
+use std::collections::HashMap;
 
 /// Type alias for abbreviation mappings: abbreviation -> (url_name, standard_work)
 pub type AbbreviationMap = HashMap<&'static str, (&'static str, StandardWork)>;
@@ -9,7 +9,7 @@ pub type AbbreviationMap = HashMap<&'static str, (&'static str, StandardWork)>;
 /// Create a comprehensive mapping of scripture abbreviations to their URL names and standard works
 pub fn create_abbreviation_map() -> AbbreviationMap {
     let mut map = HashMap::new();
-    
+
     // Old Testament - periods are handled by parser normalization
     map.insert("Gen", ("gen", StandardWork::OldTestament));
     map.insert("Ex", ("ex", StandardWork::OldTestament));
@@ -123,8 +123,8 @@ pub fn create_abbreviation_map() -> AbbreviationMap {
     map.insert("Isaiah", ("isa", StandardWork::OldTestament));
     map.insert("Jeremiah", ("jer", StandardWork::OldTestament));
     map.insert("Psalms", ("ps", StandardWork::OldTestament));
-    
-    // New Testament  
+
+    // New Testament
     map.insert("Matthew", ("matt", StandardWork::NewTestament));
     map.insert("Mark", ("mark", StandardWork::NewTestament));
     map.insert("Luke", ("luke", StandardWork::NewTestament));
@@ -133,12 +133,17 @@ pub fn create_abbreviation_map() -> AbbreviationMap {
     map.insert("Romans", ("rom", StandardWork::NewTestament));
     map.insert("Revelation", ("rev", StandardWork::NewTestament));
 
-
     // Doctrine and Covenants
     map.insert("D&C", ("dc", StandardWork::DoctrineAndCovenants));
     map.insert("OD", ("od", StandardWork::DoctrineAndCovenants));
-    map.insert("Doctrine and Covenants", ("dc", StandardWork::DoctrineAndCovenants));
-    map.insert("Doctrine & Covenants", ("dc", StandardWork::DoctrineAndCovenants));
+    map.insert(
+        "Doctrine and Covenants",
+        ("dc", StandardWork::DoctrineAndCovenants),
+    );
+    map.insert(
+        "Doctrine & Covenants",
+        ("dc", StandardWork::DoctrineAndCovenants),
+    );
 
     // Pearl of Great Price - periods handled by parser normalization
     map.insert("Moses", ("moses", StandardWork::PearlOfGreatPrice));
@@ -146,7 +151,7 @@ pub fn create_abbreviation_map() -> AbbreviationMap {
     map.insert("JS—M", ("js-m", StandardWork::PearlOfGreatPrice));
     map.insert("JS—H", ("js-h", StandardWork::PearlOfGreatPrice));
     map.insert("A of F", ("a-of-f", StandardWork::PearlOfGreatPrice));
-    
+
     map
 }
 
@@ -157,7 +162,7 @@ mod tests {
     #[test]
     fn test_abbreviation_map_contains_basics() {
         let map = create_abbreviation_map();
-        
+
         // Test some basic entries (periods are handled by parser normalization)
         assert!(map.contains_key("Gen"));
         assert!(map.contains_key("Matt"));
@@ -169,7 +174,7 @@ mod tests {
     #[test]
     fn test_abbreviation_map_full_names() {
         let map = create_abbreviation_map();
-        
+
         // Test full names work
         assert!(map.contains_key("Genesis"));
         assert!(map.contains_key("Matthew"));
@@ -180,13 +185,13 @@ mod tests {
     #[test]
     fn test_abbreviation_map_standard_works() {
         let map = create_abbreviation_map();
-        
+
         let (_, standard_work) = map.get("Gen").unwrap();
         assert_eq!(*standard_work, StandardWork::OldTestament);
-        
+
         let (_, standard_work) = map.get("Matt").unwrap();
         assert_eq!(*standard_work, StandardWork::NewTestament);
-        
+
         let (_, standard_work) = map.get("1 Ne").unwrap();
         assert_eq!(*standard_work, StandardWork::BookOfMormon);
     }
@@ -200,10 +205,19 @@ mod tests {
         assert!(map.contains_key("1 Ne"));
         assert!(map.contains_key("2 Ne"));
         assert!(map.contains_key("Hel"));
-        
+
         // Verify they map to correct values
-        assert_eq!(map.get("Gen").unwrap(), &("gen", StandardWork::OldTestament));
-        assert_eq!(map.get("Matt").unwrap(), &("matt", StandardWork::NewTestament));
-        assert_eq!(map.get("1 Ne").unwrap(), &("1-ne", StandardWork::BookOfMormon));
+        assert_eq!(
+            map.get("Gen").unwrap(),
+            &("gen", StandardWork::OldTestament)
+        );
+        assert_eq!(
+            map.get("Matt").unwrap(),
+            &("matt", StandardWork::NewTestament)
+        );
+        assert_eq!(
+            map.get("1 Ne").unwrap(),
+            &("1-ne", StandardWork::BookOfMormon)
+        );
     }
 }

@@ -1,7 +1,7 @@
 //! JSON output structures for machine-readable responses
 
-use serde::{Deserialize, Serialize};
 use crate::types::ScriptureReference;
+use serde::{Deserialize, Serialize};
 
 /// Success response for single reference processing
 #[derive(Debug, Serialize, Deserialize)]
@@ -100,14 +100,14 @@ impl ErrorInfo {
 pub fn create_error_response(input: &str, error_msg: &str) -> SingleReferenceResponse {
     let (code, category) = categorize_error(error_msg);
     let suggestions = extract_suggestions(error_msg);
-    
+
     let error_info = ErrorInfo::new(&code, error_msg, category);
     let error_info = if let Some(suggestions) = suggestions {
         error_info.with_suggestions(suggestions)
     } else {
         error_info
     };
-    
+
     SingleReferenceResponse {
         success: false,
         input: input.to_string(),

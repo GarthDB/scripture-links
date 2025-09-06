@@ -1,4 +1,3 @@
-
 //! Core types used throughout the application
 
 use serde::{Deserialize, Serialize};
@@ -45,7 +44,10 @@ mod tests {
         assert_eq!(StandardWork::OldTestament.to_url_path(), "ot");
         assert_eq!(StandardWork::NewTestament.to_url_path(), "nt");
         assert_eq!(StandardWork::BookOfMormon.to_url_path(), "bofm");
-        assert_eq!(StandardWork::DoctrineAndCovenants.to_url_path(), "dc-testament");
+        assert_eq!(
+            StandardWork::DoctrineAndCovenants.to_url_path(),
+            "dc-testament"
+        );
         assert_eq!(StandardWork::PearlOfGreatPrice.to_url_path(), "pgp");
     }
 
@@ -58,7 +60,7 @@ mod tests {
             verse_end: None,
             standard_work: StandardWork::OldTestament,
         };
-        
+
         assert_eq!(reference.book, "gen");
         assert_eq!(reference.chapter, 1);
         assert_eq!(reference.verse_start, 1);
