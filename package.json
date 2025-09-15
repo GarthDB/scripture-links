@@ -8,7 +8,7 @@
     "release": "changeset version && node scripts/sync-cargo-version.js"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.29.6",
+    "@changesets/cli": "^2.29.7",
     "@changesets/changelog-github": "^0.5.0"
   }
 }
