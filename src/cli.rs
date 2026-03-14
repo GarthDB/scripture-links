@@ -304,6 +304,9 @@ impl Cli {
                     .tempfile_in(parent)?;
                 temp_file.write_all(processed.as_bytes())?;
                 temp_file.as_file().sync_all()?;
+                // On Windows, fs::rename does not overwrite an existing file; remove first.
+                #[cfg(windows)]
+                fs::remove_file(path)?;
                 temp_file.persist(path)?;
             }
         } else if self.json {
