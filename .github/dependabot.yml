@@ -14,20 +14,6 @@ updates:
       prefix: "deps"
       include: "scope"
 
-  # npm dependencies (for Changesets)
-  - package-ecosystem: "npm"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    reviewers:
-      - "GarthDB"
-    assignees:
-      - "GarthDB"
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: "deps"
-      include: "scope"
-
   # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"

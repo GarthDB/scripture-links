@@ -1,15 +1,34 @@
 //! Command-line interface handling
 
+use crate::abbreviations::book_slug_to_display_name;
 use crate::json_output::{
     BatchResponse, ErrorCategory, ErrorInfo, SingleReferenceResponse, TextProcessingResponse,
     ValidationResponse, create_error_response,
 };
-use crate::{generate_url, parse_scripture_reference, process_text_for_scripture_references};
+use crate::types::OutputFormat;
+use crate::{generate_url, parse_scripture_reference, process_text_with_format};
 use clap::Parser;
 use std::fs;
+use std::io::Write;
+use std::path::Path;
 
 /// Custom error type for CLI operations
 pub type CliError = Box<dyn std::error::Error>;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, clap::ValueEnum)]
+pub enum FormatArg {
+    Markdown,
+    Wikilink,
+}
+
+impl From<FormatArg> for OutputFormat {
+    fn from(f: FormatArg) -> Self {
+        match f {
+            FormatArg::Markdown => Self::Markdown,
+            FormatArg::Wikilink => Self::Wikilink,
+        }
+    }
+}
 
 /// Command-line interface definition
 #[derive(Parser)]
@@ -28,6 +47,14 @@ pub struct Cli {
     /// Process file and convert scripture references to markdown links
     #[arg(short, long, group = "input")]
     pub file: Option<String>,
+
+    /// Write output back to the file (only with --file); only writes if content changed
+    #[arg(short, long)]
+    pub in_place: bool,
+
+    /// Link format: markdown [text](url) or wikilink [[Book Chapter]]:Verse for Obsidian
+    #[arg(long, value_enum, default_value = "markdown")]
+    pub format: FormatArg,
 
     /// Output in JSON format (machine-readable)
     #[arg(long)]
@@ -48,6 +75,10 @@ impl Cli {
     /// # Errors
     /// Returns an error if file operations fail or if invalid arguments are provided
     pub fn execute(self) -> Result<(), CliError> {
+        if self.in_place && self.file.is_none() {
+            Self::output_error("--in-place can only be used with --file");
+            std::process::exit(1);
+        }
         if let Some(ref reference) = self.reference {
             self.handle_single_reference(reference)
         } else if let Some(ref batch) = self.batch {
@@ -68,19 +99,37 @@ impl Cli {
         } else {
             match parse_scripture_reference(reference) {
                 Ok(scripture) => {
-                    let url = generate_url(&scripture);
-
+                    let output_format: OutputFormat = self.format.into();
                     if self.json {
+                        let url = generate_url(&scripture);
+                        #[allow(clippy::redundant_clone)]
                         let response = SingleReferenceResponse {
                             success: true,
                             input: reference.to_string(),
-                            parsed: Some(scripture),
+                            parsed: Some(scripture.clone()),
                             url: Some(url),
                             error: None,
                         };
                         println!("{}", serde_json::to_string_pretty(&response)?);
                     } else {
-                        println!("{url}");
+                        match output_format {
+                            OutputFormat::Wikilink => {
+                                let display_name = book_slug_to_display_name(&scripture.book)
+                                    .unwrap_or(scripture.book.as_str());
+                                let verse_suffix = scripture.verse_end.map_or_else(
+                                    || scripture.verse_start.to_string(),
+                                    |end| format!("{}-{end}", scripture.verse_start),
+                                );
+                                println!(
+                                    "[[{} {}]]:{verse_suffix}",
+                                    display_name, scripture.chapter
+                                );
+                            }
+                            OutputFormat::Markdown => {
+                                let url = generate_url(&scripture);
+                                println!("{url}");
+                            }
+                        }
                     }
                 }
                 Err(error) => {
@@ -194,7 +243,8 @@ impl Cli {
     }
 
     fn handle_text_processing(&self, text: &str) -> Result<(), CliError> {
-        let processed_text = process_text_for_scripture_references(text);
+        let output_format: OutputFormat = self.format.into();
+        let processed_text = process_text_with_format(text, output_format, false);
 
         if self.json {
             // Count references found (rough estimate)
@@ -216,8 +266,8 @@ impl Cli {
     }
 
     fn handle_file_processing(&self, file_path: &str) -> Result<(), CliError> {
-        match fs::read_to_string(file_path) {
-            Ok(file_content) => self.handle_text_processing(&file_content),
+        let file_content = match fs::read_to_string(file_path) {
+            Ok(content) => content,
             Err(error) => {
                 if self.json {
                     let _error_info = ErrorInfo::new(
@@ -232,15 +282,47 @@ impl Cli {
                         references_found: 0,
                         references: Vec::new(),
                     };
-                    // Note: This is a bit of a hack - we should have a separate FileError response type
                     println!("{}", serde_json::to_string_pretty(&response)?);
                 } else {
                     Self::output_error(&format!("Error reading file '{file_path}': {error}"));
                     std::process::exit(1);
                 }
-                Ok(())
+                return Ok(());
             }
+        };
+
+        let output_format: OutputFormat = self.format.into();
+        let processed = process_text_with_format(&file_content, output_format, false);
+
+        if self.in_place {
+            if processed != file_content {
+                let path = Path::new(file_path);
+                let parent = path.parent().unwrap_or_else(|| Path::new("."));
+                let mut temp_file = tempfile::Builder::new()
+                    .prefix(".scripture-links.")
+                    .suffix(".tmp")
+                    .tempfile_in(parent)?;
+                temp_file.write_all(processed.as_bytes())?;
+                temp_file.as_file().sync_all()?;
+                // On Windows, fs::rename does not overwrite an existing file; remove first.
+                #[cfg(windows)]
+                fs::remove_file(path)?;
+                temp_file.persist(path)?;
+            }
+        } else if self.json {
+            let references_found = processed.matches('[').count();
+            let response = TextProcessingResponse {
+                success: true,
+                input_text: file_content,
+                output_text: processed,
+                references_found,
+                references: Vec::new(),
+            };
+            println!("{}", serde_json::to_string_pretty(&response)?);
+        } else {
+            print!("{processed}");
         }
+        Ok(())
     }
 
     #[allow(clippy::branches_sharing_code)]

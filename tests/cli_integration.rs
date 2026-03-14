@@ -14,6 +14,28 @@ fn test_cli_single_reference() {
 }
 
 #[test]
+fn test_cli_dc_normalized() {
+    // DC (no ampersand) should be accepted and output as D&C in links
+    let output = Command::new("cargo")
+        .args(["run", "--", "--reference", "DC 88:1"])
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("churchofjesuschrist.org/study/scriptures/dc-testament/dc/88"));
+
+    let output_text = Command::new("cargo")
+        .args(["run", "--", "--text", "Read DC 121:41 today"])
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(output_text.status.success());
+    let stdout_text = String::from_utf8(output_text.stdout).unwrap();
+    assert!(stdout_text.contains("[D&C 121:41]("));
+}
+
+#[test]
 fn test_cli_text_processing() {
     let output = Command::new("cargo")
         .args(["run", "--", "--text", "See Genesis 1:1 and 2 Nephi 10:14"])
@@ -244,6 +266,94 @@ fn test_cli_file_processing_json() {
 
     // Clean up
     fs::remove_file("test_file_json.txt").ok();
+}
+
+#[test]
+fn test_cli_in_place_modifies_file() {
+    use std::fs;
+    use tempfile::NamedTempFile;
+
+    let temp = NamedTempFile::new().expect("create temp file");
+    let path = temp.path().to_str().expect("path to str").to_string();
+    fs::write(&path, "See Alma 5:6 for a verse.").expect("write");
+
+    let output = Command::new("cargo")
+        .args(["run", "--", "--file", &path, "--in-place"])
+        .output()
+        .expect("run CLI");
+
+    assert!(output.status.success());
+    let content = fs::read_to_string(&path).expect("read back");
+    assert!(content.contains("[Alma 5:6]("));
+    assert!(content.contains("churchofjesuschrist.org"));
+}
+
+#[test]
+fn test_cli_in_place_no_change_when_no_refs() {
+    use std::fs;
+    use tempfile::NamedTempFile;
+
+    let temp = NamedTempFile::new().expect("create temp file");
+    let path = temp.path().to_str().expect("path to str").to_string();
+    let original = "No scripture refs here.";
+    fs::write(&path, original).expect("write");
+
+    let output = Command::new("cargo")
+        .args(["run", "--", "--file", &path, "--in-place"])
+        .output()
+        .expect("run CLI");
+
+    assert!(output.status.success());
+    let content = fs::read_to_string(&path).expect("read back");
+    assert_eq!(content, original);
+}
+
+#[test]
+fn test_cli_format_wikilink() {
+    let output = Command::new("cargo")
+        .args([
+            "run",
+            "--",
+            "--reference",
+            "Alma 13:6",
+            "--format",
+            "wikilink",
+        ])
+        .output()
+        .expect("run CLI");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert_eq!(stdout.trim(), "[[Alma 13]]:6");
+
+    let output_text = Command::new("cargo")
+        .args([
+            "run",
+            "--",
+            "--text",
+            "Read Alma 13:6 and Moroni 7:45-48.",
+            "--format",
+            "wikilink",
+        ])
+        .output()
+        .expect("run CLI");
+
+    assert!(output_text.status.success());
+    let stdout_text = String::from_utf8(output_text.stdout).unwrap();
+    assert!(stdout_text.contains("[[Alma 13]]:6"));
+    assert!(stdout_text.contains("[[Moroni 7]]:45-48"));
+}
+
+#[test]
+fn test_cli_in_place_requires_file() {
+    let output = Command::new("cargo")
+        .args(["run", "--", "--in-place"])
+        .output()
+        .expect("run CLI");
+
+    assert!(!output.status.success());
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(stderr.contains("--in-place can only be used with --file"));
 }
 
 #[test]
