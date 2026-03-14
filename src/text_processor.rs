@@ -1,7 +1,8 @@
 //! Text processing for finding and converting scripture references to markdown links
 
-use crate::abbreviations::create_abbreviation_map;
+use crate::abbreviations::{book_slug_to_display_name, create_abbreviation_map};
 use crate::parser::parse_scripture_reference;
+use crate::types::OutputFormat;
 use crate::url_generator::generate_url;
 use regex::Regex;
 
@@ -22,7 +23,16 @@ use regex::Regex;
 /// Panics if the regex pattern is invalid (should never happen with hardcoded pattern)
 #[must_use]
 pub fn process_text_for_scripture_references(text: &str) -> String {
-    process_text_with_options(text, false)
+    process_text_with_format(text, OutputFormat::Markdown, false)
+}
+
+#[must_use]
+pub fn process_text_with_format(
+    text: &str,
+    format: OutputFormat,
+    include_study_helps: bool,
+) -> String {
+    process_text_with_format_impl(text, format, include_study_helps)
 }
 
 /// Process text with options for including Study Helps
@@ -46,6 +56,16 @@ pub fn process_text_for_scripture_references(text: &str) -> String {
 /// Panics if the internal regex pattern is invalid (should never happen with hardcoded patterns).
 #[must_use]
 pub fn process_text_with_options(text: &str, include_study_helps: bool) -> String {
+    process_text_with_format(text, OutputFormat::Markdown, include_study_helps)
+}
+
+#[allow(clippy::too_many_lines)]
+#[must_use]
+fn process_text_with_format_impl(
+    text: &str,
+    format: OutputFormat,
+    include_study_helps: bool,
+) -> String {
     // Create a more comprehensive regex to find scripture references in text
     // This should match patterns like:
     // - "See Genesis 1:1 for more details"
@@ -87,13 +107,53 @@ pub fn process_text_with_options(text: &str, include_study_helps: bool) -> Strin
 
         // Process matches in reverse order to preserve indices
         for (range, matched_text) in matches.into_iter().rev() {
+            // Skip if already inside [[wikilink]] (avoid double-converting)
+            if range.start >= 2
+                && result.get(range.start.saturating_sub(2)..range.start) == Some("[[")
+            {
+                continue;
+            }
             // Try to parse this as a scripture reference
             if let Ok(scripture) = parse_scripture_reference(&matched_text) {
-                let url = generate_url(&scripture);
-                let markdown_link = format!("[{matched_text}]({url})");
+                let replacement = match format {
+                    OutputFormat::Wikilink => {
+                        let display_name = book_slug_to_display_name(&scripture.book)
+                            .unwrap_or(scripture.book.as_str());
+                        let verse_suffix = scripture.verse_end.map_or_else(
+                            || scripture.verse_start.to_string(),
+                            |end| format!("{}-{end}", scripture.verse_start),
+                        );
+                        format!("[[{display_name} {}]]:{verse_suffix}", scripture.chapter)
+                    }
+                    OutputFormat::Markdown => {
+                        let url = generate_url(&scripture);
+                        // Normalize DC to D&C in link text when user wrote DC (no ampersand)
+                        let trimmed = matched_text.trim();
+                        let u = trimmed.to_uppercase();
+                        let link_text = if scripture.book == "dc"
+                            && u.len() >= 2
+                            && u.get(0..2) == Some("DC")
+                            && (u.len() == 2 || u.chars().nth(2) != Some('&'))
+                        {
+                            let verse_part = scripture.verse_end.map_or_else(
+                                || format!("{}:{}", scripture.chapter, scripture.verse_start),
+                                |end| {
+                                    format!(
+                                        "{}:{}-{}",
+                                        scripture.chapter, scripture.verse_start, end
+                                    )
+                                },
+                            );
+                            format!("D&C {verse_part}")
+                        } else {
+                            matched_text.clone()
+                        };
+                        format!("[{link_text}]({url})")
+                    }
+                };
 
-                // Replace the matched text with the markdown link
-                result.replace_range(range, &markdown_link);
+                // Replace the matched text with the link
+                result.replace_range(range, &replacement);
             }
         }
     }
@@ -176,6 +236,27 @@ mod tests {
         assert!(result.contains("[2 Nephi 10:14]("));
         assert!(result.contains("[D&C 128:22-23]("));
         assert!(result.contains("for insights."));
+    }
+
+    #[test]
+    fn test_dc_normalized_to_d_and_c_in_output() {
+        // DC (no ampersand) should be recognized and output as D&C
+        let input = "Read DC 121:41 today.";
+        let result = process_text_for_scripture_references(input);
+        assert!(result.contains("[D&C 121:41](https://"));
+        assert!(!result.contains("[DC 121:41]("));
+
+        let input_range = "See DC 88:1-2 for context.";
+        let result_range = process_text_for_scripture_references(input_range);
+        assert!(result_range.contains("[D&C 88:1-2](https://"));
+    }
+
+    #[test]
+    fn test_d_and_c_unchanged_in_output() {
+        // D&C should remain D&C in link text
+        let input = "Read D&C 121:41 today.";
+        let result = process_text_for_scripture_references(input);
+        assert!(result.contains("[D&C 121:41](https://"));
     }
 
     #[test]
@@ -353,5 +434,37 @@ mod tests {
         assert_eq!(result, input);
         assert!(!result.contains("[bd file]("));
         assert!(!result.contains("[tg settings]("));
+    }
+
+    #[test]
+    fn test_wikilink_format_single_reference() {
+        let input = "Read Alma 13:6 today.";
+        let result = process_text_with_format(input, OutputFormat::Wikilink, false);
+        assert!(result.contains("[[Alma 13]]:6"));
+        assert!(!result.contains("churchofjesuschrist.org"));
+    }
+
+    #[test]
+    fn test_wikilink_format_verse_range() {
+        let input = "See Moroni 7:45-48.";
+        let result = process_text_with_format(input, OutputFormat::Wikilink, false);
+        assert!(result.contains("[[Moroni 7]]:45-48"));
+    }
+
+    #[test]
+    fn test_wikilink_format_full_book_names() {
+        let input = "Genesis 1:1 and 2 Nephi 10:14.";
+        let result = process_text_with_format(input, OutputFormat::Wikilink, false);
+        assert!(result.contains("[[Genesis 1]]:1"));
+        assert!(result.contains("[[2 Nephi 10]]:14"));
+    }
+
+    #[test]
+    fn test_wikilink_format_preserves_existing_wikilinks() {
+        // Existing [[wikilinks]] don't match the book+chapter:verse pattern
+        let input = "See [[Alma 13]]:6 and Alma 13:7.";
+        let result = process_text_with_format(input, OutputFormat::Wikilink, false);
+        assert!(result.contains("[[Alma 13]]:6")); // preserved
+        assert!(result.contains("[[Alma 13]]:7")); // converted
     }
 }

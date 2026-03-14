@@ -175,7 +175,7 @@ mod tests {
 
     #[test]
     fn test_doctrine_and_covenants_formats() {
-        // Test all three D&C formats
+        // Test all D&C formats including DC shorthand
         let result1 = parse_scripture_reference("D&C 1:1").unwrap();
         assert_eq!(result1.book, "dc");
         assert_eq!(result1.chapter, 1);
@@ -190,6 +190,16 @@ mod tests {
         assert_eq!(result3.book, "dc");
         assert_eq!(result3.chapter, 1);
         assert_eq!(result3.verse_start, 1);
+
+        let result4 = parse_scripture_reference("DC 88:1").unwrap();
+        assert_eq!(result4.book, "dc");
+        assert_eq!(result4.chapter, 88);
+        assert_eq!(result4.verse_start, 1);
+
+        let result5 = parse_scripture_reference("DC 121:41").unwrap();
+        assert_eq!(result5.book, "dc");
+        assert_eq!(result5.chapter, 121);
+        assert_eq!(result5.verse_start, 41);
     }
 
     #[test]

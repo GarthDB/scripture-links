@@ -2,6 +2,16 @@
 
 use serde::{Deserialize, Serialize};
 
+/// Output format for scripture links
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum OutputFormat {
+    /// Standard markdown `[text](url)` links
+    #[default]
+    Markdown,
+    /// Obsidian-style `[[Book Chapter]]:Verse` wikilinks
+    Wikilink,
+}
+
 /// Represents a parsed scripture reference
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ScriptureReference {
