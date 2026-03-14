@@ -460,6 +460,13 @@ mod tests {
     }
 
     #[test]
+    fn test_wikilink_format_dc() {
+        let input = "Read D&C 121:41 today.";
+        let result = process_text_with_format(input, OutputFormat::Wikilink, false);
+        assert!(result.contains("[[D&C 121]]:41"));
+    }
+
+    #[test]
     fn test_wikilink_format_preserves_existing_wikilinks() {
         // Existing [[wikilinks]] don't match the book+chapter:verse pattern
         let input = "See [[Alma 13]]:6 and Alma 13:7.";
