@@ -81,7 +81,7 @@ jobs:
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          release_id: ${{ github.event.release.id }}
+          tag_name: ${{ github.event.release.tag_name }}
           files: artifacts/**/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
