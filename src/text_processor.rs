@@ -66,6 +66,10 @@ fn process_text_with_format_impl(
     format: OutputFormat,
     include_study_helps: bool,
 ) -> String {
+    const fn range_overlaps(a: &std::ops::Range<usize>, b: &std::ops::Range<usize>) -> bool {
+        a.start < b.end && a.end > b.start
+    }
+
     // Create a more comprehensive regex to find scripture references in text
     // This should match patterns like:
     // - "See Genesis 1:1 for more details"
@@ -94,6 +98,12 @@ fn process_text_with_format_impl(
 
     let mut result = text.to_string();
 
+    // Ranges of existing markdown links [text](url) — do not convert text inside them
+    let markdown_link_ranges: Vec<std::ops::Range<usize>> = {
+        let link_re = Regex::new(r"\[[^\]]*\]\([^)]*\)").unwrap();
+        link_re.find_iter(&result).map(|m| m.range()).collect()
+    };
+
     // Process regular scripture references (chapter:verse pattern)
     if !scripture_patterns.is_empty() {
         let book_pattern = scripture_patterns.join("|");
@@ -110,6 +120,13 @@ fn process_text_with_format_impl(
             // Skip if already inside [[wikilink]] (avoid double-converting)
             if range.start >= 2
                 && result.get(range.start.saturating_sub(2)..range.start) == Some("[[")
+            {
+                continue;
+            }
+            // Skip if inside an existing markdown link [text](url)
+            if markdown_link_ranges
+                .iter()
+                .any(|link_range| range_overlaps(&range, link_range))
             {
                 continue;
             }
@@ -473,5 +490,82 @@ mod tests {
         let result = process_text_with_format(input, OutputFormat::Wikilink, false);
         assert!(result.contains("[[Alma 13]]:6")); // preserved
         assert!(result.contains("[[Alma 13]]:7")); // converted
+    }
+
+    #[test]
+    fn test_existing_markdown_link_not_double_wrapped() {
+        // Text already inside [text](url) must not be wrapped again
+        let input = "[Matthew 6:27](https://www.churchofjesuschrist.org/study/scriptures/nt/matt/6?lang=eng&id=p27#p27)";
+        let result = process_text_for_scripture_references(input);
+        assert_eq!(
+            result, input,
+            "existing markdown link must be left unchanged"
+        );
+        assert!(
+            !result.contains("]]("),
+            "must not produce [[...](...)](...) double-wrapping"
+        );
+    }
+
+    #[test]
+    fn test_mixed_linked_and_unlinked_only_converts_unlinked() {
+        let input = "See [Matthew 6:27](https://example.com/matt/6#p27) and also Mark 12:41.";
+        let result = process_text_for_scripture_references(input);
+        // First ref must stay as-is (one link), second must become a link
+        assert!(result.contains("[Matthew 6:27](https://example.com/matt/6#p27)"));
+        assert!(result.contains("[Mark 12:41](https://www.churchofjesuschrist.org"));
+        assert!(
+            !result.contains("]]("),
+            "must not double-wrap the existing link"
+        );
+    }
+
+    #[test]
+    fn test_process_text_idempotent() {
+        // Running the tool on its own output should not change it
+        let input = "Read Genesis 1:1 and Alma 13:6.";
+        let once = process_text_for_scripture_references(input);
+        let twice = process_text_for_scripture_references(&once);
+        assert_eq!(once, twice, "second pass must not alter output");
+    }
+
+    #[test]
+    fn test_full_book_names_nt_epistles() {
+        // Full names for NT epistles must be recognized and linked
+        let input = "Read 1 Corinthians 13:2 and Galatians 6:15 and Hebrews 11:1.";
+        let result = process_text_for_scripture_references(input);
+        assert!(result.contains("[1 Corinthians 13:2]("));
+        assert!(result.contains("1-cor/13"));
+        assert!(result.contains("[Galatians 6:15]("));
+        assert!(result.contains("gal/6"));
+        assert!(result.contains("[Hebrews 11:1]("));
+        assert!(result.contains("heb/11"));
+    }
+
+    #[test]
+    fn test_one_john_matches_as_first_john_not_gospel() {
+        // "1 John 4:18" must link to 1 John (1-jn), not Gospel of John (john)
+        let input = "1 John 4:18";
+        let result = process_text_for_scripture_references(input);
+        assert!(result.contains("1-jn/4"));
+        assert!(!result.contains("[John 4:18]("));
+    }
+
+    #[test]
+    fn test_second_peter_full_name() {
+        let input = "See 2 Peter 3:9.";
+        let result = process_text_for_scripture_references(input);
+        assert!(result.contains("[2 Peter 3:9]("));
+        assert!(result.contains("2-pet/3"));
+    }
+
+    #[test]
+    fn test_mixed_full_names_and_abbreviations() {
+        let input = "Compare 1 Cor. 13:1 with 1 Corinthians 13:2 and Heb. 11:1 with Hebrews 11:1.";
+        let result = process_text_for_scripture_references(input);
+        assert!(result.contains("[1 Cor. 13:1]("));
+        assert!(result.contains("[1 Corinthians 13:2]("));
+        assert!(result.contains("[Heb. 11:1]("));
+        assert!(result.contains("[Hebrews 11:1]("));
     }
 }
