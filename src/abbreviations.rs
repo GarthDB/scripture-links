@@ -122,8 +122,39 @@ pub fn create_abbreviation_map() -> AbbreviationMap {
     // Old Testament
     map.insert("Genesis", ("gen", StandardWork::OldTestament));
     map.insert("Exodus", ("ex", StandardWork::OldTestament));
+    map.insert("Leviticus", ("lev", StandardWork::OldTestament));
+    map.insert("Numbers", ("num", StandardWork::OldTestament));
+    map.insert("Deuteronomy", ("deut", StandardWork::OldTestament));
+    map.insert("Joshua", ("josh", StandardWork::OldTestament));
+    map.insert("Judges", ("judg", StandardWork::OldTestament));
+    map.insert("1 Samuel", ("1-sam", StandardWork::OldTestament));
+    map.insert("2 Samuel", ("2-sam", StandardWork::OldTestament));
+    map.insert("1 Kings", ("1-kgs", StandardWork::OldTestament));
+    map.insert("2 Kings", ("2-kgs", StandardWork::OldTestament));
+    map.insert("1 Chronicles", ("1-chr", StandardWork::OldTestament));
+    map.insert("2 Chronicles", ("2-chr", StandardWork::OldTestament));
+    map.insert("Nehemiah", ("neh", StandardWork::OldTestament));
+    map.insert("Esther", ("esth", StandardWork::OldTestament));
+    map.insert("Proverbs", ("prov", StandardWork::OldTestament));
+    map.insert("Ecclesiastes", ("eccl", StandardWork::OldTestament));
+    map.insert("Song of Solomon", ("song", StandardWork::OldTestament));
     map.insert("Isaiah", ("isa", StandardWork::OldTestament));
     map.insert("Jeremiah", ("jer", StandardWork::OldTestament));
+    map.insert("Lamentations", ("lam", StandardWork::OldTestament));
+    map.insert("Ezekiel", ("ezek", StandardWork::OldTestament));
+    map.insert("Daniel", ("dan", StandardWork::OldTestament));
+    map.insert("Hosea", ("hosea", StandardWork::OldTestament));
+    map.insert("Joel", ("joel", StandardWork::OldTestament));
+    map.insert("Amos", ("amos", StandardWork::OldTestament));
+    map.insert("Obadiah", ("obad", StandardWork::OldTestament));
+    map.insert("Jonah", ("jonah", StandardWork::OldTestament));
+    map.insert("Micah", ("micah", StandardWork::OldTestament));
+    map.insert("Nahum", ("nahum", StandardWork::OldTestament));
+    map.insert("Habakkuk", ("hab", StandardWork::OldTestament));
+    map.insert("Zephaniah", ("zeph", StandardWork::OldTestament));
+    map.insert("Haggai", ("hag", StandardWork::OldTestament));
+    map.insert("Zechariah", ("zech", StandardWork::OldTestament));
+    map.insert("Malachi", ("mal", StandardWork::OldTestament));
     map.insert("Psalms", ("ps", StandardWork::OldTestament));
 
     // New Testament
@@ -133,6 +164,25 @@ pub fn create_abbreviation_map() -> AbbreviationMap {
     map.insert("John", ("john", StandardWork::NewTestament));
     map.insert("Acts", ("acts", StandardWork::NewTestament));
     map.insert("Romans", ("rom", StandardWork::NewTestament));
+    map.insert("1 Corinthians", ("1-cor", StandardWork::NewTestament));
+    map.insert("2 Corinthians", ("2-cor", StandardWork::NewTestament));
+    map.insert("Galatians", ("gal", StandardWork::NewTestament));
+    map.insert("Ephesians", ("eph", StandardWork::NewTestament));
+    map.insert("Philippians", ("philip", StandardWork::NewTestament));
+    map.insert("Colossians", ("col", StandardWork::NewTestament));
+    map.insert("1 Thessalonians", ("1-thes", StandardWork::NewTestament));
+    map.insert("2 Thessalonians", ("2-thes", StandardWork::NewTestament));
+    map.insert("1 Timothy", ("1-tim", StandardWork::NewTestament));
+    map.insert("2 Timothy", ("2-tim", StandardWork::NewTestament));
+    map.insert("Philemon", ("philem", StandardWork::NewTestament));
+    map.insert("Hebrews", ("heb", StandardWork::NewTestament));
+    map.insert("James", ("james", StandardWork::NewTestament));
+    map.insert("1 Peter", ("1-pet", StandardWork::NewTestament));
+    map.insert("2 Peter", ("2-pet", StandardWork::NewTestament));
+    map.insert("1 John", ("1-jn", StandardWork::NewTestament));
+    map.insert("2 John", ("2-jn", StandardWork::NewTestament));
+    map.insert("3 John", ("3-jn", StandardWork::NewTestament));
+    map.insert("Jude", ("jude", StandardWork::NewTestament));
     map.insert("Revelation", ("rev", StandardWork::NewTestament));
 
     // Doctrine and Covenants (DC is normalized to D&C in output)
@@ -320,6 +370,38 @@ mod tests {
         assert!(map.contains_key("Matthew"));
         assert!(map.contains_key("2 Nephi"));
         assert!(map.contains_key("Doctrine and Covenants"));
+    }
+
+    #[test]
+    fn test_abbreviation_map_nt_epistle_full_names() {
+        let map = create_abbreviation_map();
+
+        // Full names for NT epistles (Issue #53)
+        let nt_full = [
+            "1 Corinthians",
+            "2 Corinthians",
+            "Galatians",
+            "Ephesians",
+            "Philippians",
+            "Colossians",
+            "1 Thessalonians",
+            "2 Thessalonians",
+            "1 Timothy",
+            "2 Timothy",
+            "Philemon",
+            "Hebrews",
+            "1 Peter",
+            "2 Peter",
+            "1 John",
+            "2 John",
+            "3 John",
+            "Jude",
+        ];
+        for name in nt_full {
+            assert!(map.contains_key(name), "missing full name: {name}");
+        }
+        // 1 John must map to 1-jn (epistle), not john (gospel)
+        assert_eq!(map.get("1 John").unwrap().0, "1-jn");
     }
 
     #[test]
