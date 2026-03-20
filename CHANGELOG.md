@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.3](https://github.com/GarthDB/scripture-links/compare/v1.2.2...v1.2.3) - 2026-03-20
+
+### Fixed
+
+- *(ci)* dispatch Release binaries after release-plz publish ([#64](https://github.com/GarthDB/scripture-links/pull/64))
+
 ## [1.2.2](https://github.com/GarthDB/scripture-links/compare/v1.2.1...v1.2.2) - 2026-03-20
 
 ### Fixed
