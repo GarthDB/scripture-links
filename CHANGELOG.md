@@ -1,3 +1,43 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [1.2.2](https://github.com/GarthDB/scripture-links/compare/v1.2.1...v1.2.2) - 2026-03-20
+
+### Fixed
+
+- *(ci)* enable git_only in release-plz for crates.io-free versioning ([#62](https://github.com/GarthDB/scripture-links/pull/62))
+- double-wrap, full book names, and release workflow ([#61](https://github.com/GarthDB/scripture-links/pull/61))
+
+### Other
+
+- bump actions/download-artifact from 7 to 8 ([#55](https://github.com/GarthDB/scripture-links/pull/55))
+- bump actions/upload-artifact from 6 to 7 ([#54](https://github.com/GarthDB/scripture-links/pull/54))
+- *(deps)* bump clap from 4.5.58 to 4.6.0 ([#59](https://github.com/GarthDB/scripture-links/pull/59))
+- *(deps)* bump tempfile from 3.21.0 to 3.27.0 ([#56](https://github.com/GarthDB/scripture-links/pull/56))
+- *(deps)* bump web-sys from 0.3.85 to 0.3.91 ([#58](https://github.com/GarthDB/scripture-links/pull/58))
+- *(deps)* bump once_cell from 1.21.3 to 1.21.4 ([#57](https://github.com/GarthDB/scripture-links/pull/57))
+- migrate from Changesets to release-plz ([#52](https://github.com/GarthDB/scripture-links/pull/52))
+- *(deps)* bump proptest from 1.8.0 to 1.10.0 ([#44](https://github.com/GarthDB/scripture-links/pull/44))
+- *(deps)* bump web-sys from 0.3.80 to 0.3.85 ([#42](https://github.com/GarthDB/scripture-links/pull/42))
+- *(deps)* bump serde_json from 1.0.143 to 1.0.149 ([#41](https://github.com/GarthDB/scripture-links/pull/41))
+- *(deps)* bump regex from 1.11.2 to 1.12.3 ([#45](https://github.com/GarthDB/scripture-links/pull/45))
+- *(deps)* bump clap from 4.5.48 to 4.5.58 ([#48](https://github.com/GarthDB/scripture-links/pull/48))
+- *(deps-dev)* bump @changesets/cli from 2.29.7 to 2.29.8 ([#34](https://github.com/GarthDB/scripture-links/pull/34))
+- bump actions/download-artifact from 5 to 7 ([#37](https://github.com/GarthDB/scripture-links/pull/37))
+- bump actions/upload-artifact from 4 to 6 ([#38](https://github.com/GarthDB/scripture-links/pull/38))
+- bump actions/setup-node from 5 to 6 ([#23](https://github.com/GarthDB/scripture-links/pull/23))
+- bump actions/checkout from 5 to 6 ([#30](https://github.com/GarthDB/scripture-links/pull/30))
+- Merge pull request #14 from GarthDB/dependabot/cargo/web-sys-0.3.80
+- Merge pull request #15 from GarthDB/dependabot/cargo/clap-4.5.48
+- Merge main into dependabot/cargo/serde-1.0.226
+- Merge pull request #12 from GarthDB/dependabot/cargo/proptest-1.8.0
+- bump actions/upload-pages-artifact from 3 to 4
 # scripture-links
 
 ## 1.2.1
