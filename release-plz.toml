@@ -1,6 +1,7 @@
 [workspace]
 # Not published to crates.io; distributed via GitHub Releases and Homebrew (GarthDB/homebrew-scripture-links)
 publish = false
+git_only = true
 git_tag_enable = true
 git_release_enable = true
 changelog_update = true
