@@ -11,6 +11,7 @@ jobs:
     if: ${{ github.repository_owner == 'GarthDB' }}
     permissions:
       contents: write
+      actions: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -22,11 +23,29 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Run release-plz
+        id: release-plz
         uses: release-plz/action@v0.5
         with:
           command: release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trigger binary builds
+        if: steps.release-plz.outputs.releases_created == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASES_JSON: ${{ steps.release-plz.outputs.releases }}
+        run: |
+          set -euo pipefail
+          TAG=$(echo "$RELEASES_JSON" | jq -r '.[0].tag // empty')
+          if [ -z "$TAG" ]; then
+            TAG=$(echo "$RELEASES_JSON" | jq -r 'if .[0].version then "v" + (.[0].version | tostring) else empty end')
+          fi
+          if [ -z "$TAG" ]; then
+            echo "::error::Could not determine release tag from releases output"
+            exit 1
+          fi
+          gh workflow run release-binaries.yml -f "tag_name=$TAG"
 
   release-plz-pr:
     name: Release-plz PR
