@@ -111,7 +111,7 @@ jobs:
         run: cargo tarpaulin --verbose --all-features --workspace --all-targets --follow-exec --engine Llvm --post-test-delay 10 --timeout 120 --out xml
 
       - name: Upload to codecov.io
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
