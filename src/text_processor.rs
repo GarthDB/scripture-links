@@ -107,7 +107,7 @@ fn process_text_with_format_impl(
     // Process regular scripture references (chapter:verse pattern)
     if !scripture_patterns.is_empty() {
         let book_pattern = scripture_patterns.join("|");
-        let pattern = format!(r"\b({book_pattern})\s*\.?\s*(\d+):(\d+)(?:-(\d+))?\b");
+        let pattern = format!(r"\b({book_pattern})\s*\.?\s*(\d+):(\d+)(?:[-–—](\d+))?\b");
         let re = Regex::new(&pattern).unwrap();
 
         let matches: Vec<_> = re
@@ -301,6 +301,27 @@ mod tests {
         assert!(result.starts_with("The verse in "));
         assert!(result.contains("[Isaiah 55:8-9]("));
         assert!(result.ends_with(" teaches us about God's ways being higher."));
+    }
+
+    #[test]
+    fn test_preserves_surrounding_text_en_dash() {
+        let input = "The verse in Isaiah 14:4–20 teaches us about pride.";
+        let result = process_text_for_scripture_references(input);
+
+        assert!(result.starts_with("The verse in "));
+        assert!(result.contains("[Isaiah 14:4–20]("));
+        assert!(!result.contains(
+            "](https://www.churchofjesuschrist.org/study/scriptures/ot/isa/14?lang=eng&id=p4#p4)–20"
+        ));
+        assert!(result.ends_with(" teaches us about pride."));
+    }
+
+    #[test]
+    fn test_preserves_surrounding_text_em_dash() {
+        let input = "See Isa. 6:5—10 for the vision.";
+        let result = process_text_for_scripture_references(input);
+
+        assert!(result.contains("[Isa. 6:5—10]("));
     }
 
     #[test]

@@ -31,7 +31,7 @@ pub fn parse_scripture_reference(reference: &str) -> Result<ScriptureReference, 
     // Examples: "Isa. 6:5", "Isa.6:5", "2 Ne. 10:14-15", "2Ne.10:14-15", "D&C 128:22-23"
     // This regex captures everything before the chapter:verse pattern as the book
     // The \s* makes the space between book and chapter optional
-    let re = Regex::new(r"^(.+?)\s*(\d+):(\d+)(?:-(\d+))?$").unwrap();
+    let re = Regex::new(r"^(.+?)\s*(\d+):(\d+)(?:[-–—](\d+))?$").unwrap();
 
     if let Some(captures) = re.captures(reference.trim()) {
         let book_abbrev = captures
@@ -141,6 +141,24 @@ mod tests {
         assert_eq!(result.chapter, 10);
         assert_eq!(result.verse_start, 14);
         assert_eq!(result.verse_end, Some(15));
+    }
+
+    #[test]
+    fn test_parse_verse_range_en_dash() {
+        let result = parse_scripture_reference("Isa. 6:5–10").unwrap();
+        assert_eq!(result.book, "isa");
+        assert_eq!(result.chapter, 6);
+        assert_eq!(result.verse_start, 5);
+        assert_eq!(result.verse_end, Some(10));
+    }
+
+    #[test]
+    fn test_parse_verse_range_em_dash() {
+        let result = parse_scripture_reference("Isaiah 14:4—20").unwrap();
+        assert_eq!(result.book, "isa");
+        assert_eq!(result.chapter, 14);
+        assert_eq!(result.verse_start, 4);
+        assert_eq!(result.verse_end, Some(20));
     }
 
     #[test]
