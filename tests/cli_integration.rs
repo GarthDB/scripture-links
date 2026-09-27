@@ -345,6 +345,26 @@ fn test_cli_format_wikilink() {
 }
 
 #[test]
+fn test_cli_format_wikilink_chapter_only() {
+    // Chapter-only reference (no verse) has no `:suffix` in wikilink output
+    let output = Command::new("cargo")
+        .args([
+            "run",
+            "--",
+            "--reference",
+            "Isaiah 29",
+            "--format",
+            "wikilink",
+        ])
+        .output()
+        .expect("run CLI");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert_eq!(stdout.trim(), "[[Isaiah 29]]");
+}
+
+#[test]
 fn test_cli_in_place_requires_file() {
     let output = Command::new("cargo")
         .args(["run", "--", "--in-place"])

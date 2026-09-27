@@ -276,6 +276,12 @@ mod tests {
         let input_range = "See DC 88:1-2 for context.";
         let result_range = process_text_for_scripture_references(input_range);
         assert!(result_range.contains("[D&C 88:1-2](https://"));
+
+        // Chapter-only DC reference (no verse) also gets normalized
+        let input_chapter = "Read DC 88 today.";
+        let result_chapter = process_text_for_scripture_references(input_chapter);
+        assert!(result_chapter.contains("[D&C 88](https://"));
+        assert!(!result_chapter.contains("[DC 88]("));
     }
 
     #[test]
@@ -533,6 +539,15 @@ mod tests {
         let input = "See Moroni 7:45-48.";
         let result = process_text_with_format(input, OutputFormat::Wikilink, false);
         assert!(result.contains("[[Moroni 7]]:45-48"));
+    }
+
+    #[test]
+    fn test_wikilink_format_chapter_only() {
+        // Chapter-only reference (no verse) has no `:suffix` in wikilink output
+        let input = "Read Isaiah 29 today.";
+        let result = process_text_with_format(input, OutputFormat::Wikilink, false);
+        assert!(result.contains("[[Isaiah 29]]"));
+        assert!(!result.contains("[[Isaiah 29]]:"));
     }
 
     #[test]
