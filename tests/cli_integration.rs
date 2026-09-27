@@ -326,6 +326,24 @@ fn test_cli_format_wikilink() {
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert_eq!(stdout.trim(), "[[Alma 13]]:6");
 
+    // Verse range via --reference (as opposed to --text) to exercise the
+    // single-reference wikilink formatting path's range branch directly.
+    let output_range = Command::new("cargo")
+        .args([
+            "run",
+            "--",
+            "--reference",
+            "Moroni 7:45-48",
+            "--format",
+            "wikilink",
+        ])
+        .output()
+        .expect("run CLI");
+
+    assert!(output_range.status.success());
+    let stdout_range = String::from_utf8(output_range.stdout).unwrap();
+    assert_eq!(stdout_range.trim(), "[[Moroni 7]]:45-48");
+
     let output_text = Command::new("cargo")
         .args([
             "run",
@@ -342,6 +360,26 @@ fn test_cli_format_wikilink() {
     let stdout_text = String::from_utf8(output_text.stdout).unwrap();
     assert!(stdout_text.contains("[[Alma 13]]:6"));
     assert!(stdout_text.contains("[[Moroni 7]]:45-48"));
+}
+
+#[test]
+fn test_cli_format_wikilink_chapter_only() {
+    // Chapter-only reference (no verse) has no `:suffix` in wikilink output
+    let output = Command::new("cargo")
+        .args([
+            "run",
+            "--",
+            "--reference",
+            "Isaiah 29",
+            "--format",
+            "wikilink",
+        ])
+        .output()
+        .expect("run CLI");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert_eq!(stdout.trim(), "[[Isaiah 29]]");
 }
 
 #[test]

@@ -17,7 +17,8 @@ pub enum OutputFormat {
 pub struct ScriptureReference {
     pub book: String,
     pub chapter: u32,
-    pub verse_start: u32,
+    /// `None` for a chapter-only reference (e.g. "Isaiah 29", no verse specified)
+    pub verse_start: Option<u32>,
     pub verse_end: Option<u32>,
     pub standard_work: StandardWork,
     /// For Study Helps, this contains the topic/entry name (e.g., "abel", "faith")
@@ -88,7 +89,7 @@ mod tests {
         let reference = ScriptureReference {
             book: "gen".to_string(),
             chapter: 1,
-            verse_start: 1,
+            verse_start: Some(1),
             verse_end: None,
             standard_work: StandardWork::OldTestament,
             topic: None,
@@ -96,7 +97,7 @@ mod tests {
 
         assert_eq!(reference.book, "gen");
         assert_eq!(reference.chapter, 1);
-        assert_eq!(reference.verse_start, 1);
+        assert_eq!(reference.verse_start, Some(1));
         assert_eq!(reference.verse_end, None);
         assert_eq!(reference.standard_work, StandardWork::OldTestament);
     }

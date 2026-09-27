@@ -15,7 +15,7 @@ use regex::Regex;
 /// let result = parse_scripture_reference("Genesis 1:1").unwrap();
 /// assert_eq!(result.book, "gen");
 /// assert_eq!(result.chapter, 1);
-/// assert_eq!(result.verse_start, 1);
+/// assert_eq!(result.verse_start, Some(1));
 /// ```
 ///
 /// # Errors
@@ -27,11 +27,16 @@ use regex::Regex;
 pub fn parse_scripture_reference(reference: &str) -> Result<ScriptureReference, String> {
     let abbreviations = create_abbreviation_map();
 
-    // Regex to match scripture references with optional verse ranges
-    // Examples: "Isa. 6:5", "Isa.6:5", "2 Ne. 10:14-15", "2Ne.10:14-15", "D&C 128:22-23"
-    // This regex captures everything before the chapter:verse pattern as the book
+    // Regex to match scripture references with optional verse ranges, or a bare
+    // chapter/chapter-range with no verse at all.
+    // Examples: "Isa. 6:5", "Isa.6:5", "2 Ne. 10:14-15", "2Ne.10:14-15", "D&C 128:22-23",
+    // "Isaiah 29" (chapter only), "Isaiah 13-14" (chapter range)
+    // This regex captures everything before the chapter pattern as the book
     // The \s* makes the space between book and chapter optional
-    let re = Regex::new(r"^(.+?)\s*(\d+):(\d+)(?:-(\d+))?$").unwrap();
+    // Group 2 = chapter, group 3 = verse_start (optional), group 4 = verse_end (optional).
+    // The `[-–—]\d+` alternative matches a chapter range's second chapter number, which
+    // is intentionally discarded (only the first chapter drives the URL).
+    let re = Regex::new(r"^(.+?)\s*(\d+)(?::(\d+)(?:[-–—](\d+))?|[-–—]\d+)?$").unwrap();
 
     if let Some(captures) = re.captures(reference.trim()) {
         let book_abbrev = captures
@@ -46,12 +51,7 @@ pub fn parse_scripture_reference(reference: &str) -> Result<ScriptureReference, 
             .as_str()
             .parse()
             .map_err(|_| format!("Invalid chapter number in reference: {reference}"))?;
-        let verse_start: u32 = captures
-            .get(3)
-            .unwrap()
-            .as_str()
-            .parse()
-            .map_err(|_| format!("Invalid verse number in reference: {reference}"))?;
+        let verse_start: Option<u32> = captures.get(3).and_then(|m| m.as_str().parse().ok());
         let verse_end: Option<u32> = captures.get(4).and_then(|m| m.as_str().parse().ok());
 
         // Case-insensitive lookup
@@ -64,8 +64,10 @@ pub fn parse_scripture_reference(reference: &str) -> Result<ScriptureReference, 
             // Validate chapter range
             scripture_data::validate_chapter_range(book_url, chapter)?;
 
-            // Validate verse range
-            scripture_data::validate_verse_range(book_url, chapter, verse_start, verse_end)?;
+            // Validate verse range (only when a verse was actually specified)
+            if let Some(start) = verse_start {
+                scripture_data::validate_verse_range(book_url, chapter, start, verse_end)?;
+            }
 
             Ok(ScriptureReference {
                 book: (*book_url).to_string(),
@@ -122,7 +124,7 @@ mod tests {
         let result = parse_scripture_reference("Isa. 6:5").unwrap();
         assert_eq!(result.book, "isa");
         assert_eq!(result.chapter, 6);
-        assert_eq!(result.verse_start, 5);
+        assert_eq!(result.verse_start, Some(5));
         assert_eq!(result.verse_end, None);
     }
 
@@ -131,7 +133,7 @@ mod tests {
         let result = parse_scripture_reference("Jer. 23:5").unwrap();
         assert_eq!(result.book, "jer");
         assert_eq!(result.chapter, 23);
-        assert_eq!(result.verse_start, 5);
+        assert_eq!(result.verse_start, Some(5));
     }
 
     #[test]
@@ -139,8 +141,26 @@ mod tests {
         let result = parse_scripture_reference("2 Ne. 10:14-15").unwrap();
         assert_eq!(result.book, "2-ne");
         assert_eq!(result.chapter, 10);
-        assert_eq!(result.verse_start, 14);
+        assert_eq!(result.verse_start, Some(14));
         assert_eq!(result.verse_end, Some(15));
+    }
+
+    #[test]
+    fn test_parse_verse_range_en_dash() {
+        let result = parse_scripture_reference("Isa. 6:5–10").unwrap();
+        assert_eq!(result.book, "isa");
+        assert_eq!(result.chapter, 6);
+        assert_eq!(result.verse_start, Some(5));
+        assert_eq!(result.verse_end, Some(10));
+    }
+
+    #[test]
+    fn test_parse_verse_range_em_dash() {
+        let result = parse_scripture_reference("Isaiah 14:4—20").unwrap();
+        assert_eq!(result.book, "isa");
+        assert_eq!(result.chapter, 14);
+        assert_eq!(result.verse_start, Some(4));
+        assert_eq!(result.verse_end, Some(20));
     }
 
     #[test]
@@ -148,7 +168,7 @@ mod tests {
         let result = parse_scripture_reference("D&C 128:22-23").unwrap();
         assert_eq!(result.book, "dc");
         assert_eq!(result.chapter, 128);
-        assert_eq!(result.verse_start, 22);
+        assert_eq!(result.verse_start, Some(22));
         assert_eq!(result.verse_end, Some(23));
     }
 
@@ -158,19 +178,19 @@ mod tests {
         let result = parse_scripture_reference("2 Nephi 10:14").unwrap();
         assert_eq!(result.book, "2-ne");
         assert_eq!(result.chapter, 10);
-        assert_eq!(result.verse_start, 14);
+        assert_eq!(result.verse_start, Some(14));
 
         // Test Old Testament full names
         let result = parse_scripture_reference("Genesis 1:1").unwrap();
         assert_eq!(result.book, "gen");
         assert_eq!(result.chapter, 1);
-        assert_eq!(result.verse_start, 1);
+        assert_eq!(result.verse_start, Some(1));
 
         // Test New Testament full names
         let result = parse_scripture_reference("Matthew 5:3").unwrap();
         assert_eq!(result.book, "matt");
         assert_eq!(result.chapter, 5);
-        assert_eq!(result.verse_start, 3);
+        assert_eq!(result.verse_start, Some(3));
     }
 
     #[test]
@@ -179,27 +199,27 @@ mod tests {
         let result1 = parse_scripture_reference("D&C 1:1").unwrap();
         assert_eq!(result1.book, "dc");
         assert_eq!(result1.chapter, 1);
-        assert_eq!(result1.verse_start, 1);
+        assert_eq!(result1.verse_start, Some(1));
 
         let result2 = parse_scripture_reference("Doctrine and Covenants 1:1").unwrap();
         assert_eq!(result2.book, "dc");
         assert_eq!(result2.chapter, 1);
-        assert_eq!(result2.verse_start, 1);
+        assert_eq!(result2.verse_start, Some(1));
 
         let result3 = parse_scripture_reference("Doctrine & Covenants 1:1").unwrap();
         assert_eq!(result3.book, "dc");
         assert_eq!(result3.chapter, 1);
-        assert_eq!(result3.verse_start, 1);
+        assert_eq!(result3.verse_start, Some(1));
 
         let result4 = parse_scripture_reference("DC 88:1").unwrap();
         assert_eq!(result4.book, "dc");
         assert_eq!(result4.chapter, 88);
-        assert_eq!(result4.verse_start, 1);
+        assert_eq!(result4.verse_start, Some(1));
 
         let result5 = parse_scripture_reference("DC 121:41").unwrap();
         assert_eq!(result5.book, "dc");
         assert_eq!(result5.chapter, 121);
-        assert_eq!(result5.verse_start, 41);
+        assert_eq!(result5.verse_start, Some(41));
     }
 
     #[test]
@@ -217,7 +237,7 @@ mod tests {
         let result4 = parse_scripture_reference("2 nephi 10:14").unwrap();
         assert_eq!(result4.book, "2-ne");
         assert_eq!(result4.chapter, 10);
-        assert_eq!(result4.verse_start, 14);
+        assert_eq!(result4.verse_start, Some(14));
     }
 
     #[test]
@@ -265,7 +285,7 @@ mod tests {
         let error = result.unwrap_err();
         assert!(error.contains("Invalid scripture reference format"));
 
-        assert!(parse_scripture_reference("Genesis 1").is_err());
+        // "Genesis 1" is a valid chapter-only reference (no verse specified)
         assert!(parse_scripture_reference("Genesis:1").is_err());
         assert!(parse_scripture_reference("1:1").is_err());
         assert!(parse_scripture_reference("Genesis abc:1").is_err());
@@ -320,5 +340,38 @@ mod tests {
         assert!(result.is_err());
         let error = result.unwrap_err();
         assert!(error.contains("Verse number must be greater than 0"));
+    }
+
+    #[test]
+    fn test_parse_chapter_only() {
+        let result = parse_scripture_reference("Isaiah 29").unwrap();
+        assert_eq!(result.book, "isa");
+        assert_eq!(result.chapter, 29);
+        assert_eq!(result.verse_start, None);
+        assert_eq!(result.verse_end, None);
+    }
+
+    #[test]
+    fn test_parse_chapter_range() {
+        // Chapter ranges (dash, no colon) link to the first chapter only;
+        // the second chapter number is intentionally discarded.
+        let result = parse_scripture_reference("Isaiah 13–14").unwrap();
+        assert_eq!(result.book, "isa");
+        assert_eq!(result.chapter, 13);
+        assert_eq!(result.verse_start, None);
+        assert_eq!(result.verse_end, None);
+
+        let result = parse_scripture_reference("Isaiah 13-14").unwrap();
+        assert_eq!(result.chapter, 13);
+        assert_eq!(result.verse_start, None);
+    }
+
+    #[test]
+    fn test_parse_chapter_verse_still_works() {
+        // A chapter-only match must not steal from a real chapter:verse reference
+        let result = parse_scripture_reference("Isaiah 13:5").unwrap();
+        assert_eq!(result.chapter, 13);
+        assert_eq!(result.verse_start, Some(5));
+        assert_eq!(result.verse_end, None);
     }
 }
