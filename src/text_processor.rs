@@ -107,7 +107,12 @@ fn process_text_with_format_impl(
     // Process regular scripture references (chapter:verse pattern)
     if !scripture_patterns.is_empty() {
         let book_pattern = scripture_patterns.join("|");
-        let pattern = format!(r"\b({book_pattern})\s*\.?\s*(\d+):(\d+)(?:[-–—](\d+))?\b");
+        // Matches "Book Chapter:Verse[-Verse]" or a bare "Book Chapter[-Chapter]"
+        // (chapter-only reference, e.g. "Isaiah 29" or "Isaiah 13-14"). The
+        // chapter:verse alternative is tried first so "Isaiah 13:5" is never
+        // split into bare chapter "13" plus a stray ":5".
+        let pattern =
+            format!(r"\b({book_pattern})\s*\.?\s*(\d+)(?::(\d+)(?:[-–—](\d+))?|[-–—]\d+)?\b");
         let re = Regex::new(&pattern).unwrap();
 
         let matches: Vec<_> = re
@@ -136,11 +141,16 @@ fn process_text_with_format_impl(
                     OutputFormat::Wikilink => {
                         let display_name = book_slug_to_display_name(&scripture.book)
                             .unwrap_or(scripture.book.as_str());
-                        let verse_suffix = scripture.verse_end.map_or_else(
-                            || scripture.verse_start.to_string(),
-                            |end| format!("{}-{end}", scripture.verse_start),
-                        );
-                        format!("[[{display_name} {}]]:{verse_suffix}", scripture.chapter)
+                        scripture.verse_start.map_or_else(
+                            || format!("[[{display_name} {}]]", scripture.chapter),
+                            |verse_start| {
+                                let verse_suffix = scripture.verse_end.map_or_else(
+                                    || verse_start.to_string(),
+                                    |end| format!("{verse_start}-{end}"),
+                                );
+                                format!("[[{display_name} {}]]:{verse_suffix}", scripture.chapter)
+                            },
+                        )
                     }
                     OutputFormat::Markdown => {
                         let url = generate_url(&scripture);
@@ -152,12 +162,12 @@ fn process_text_with_format_impl(
                             && u.get(0..2) == Some("DC")
                             && (u.len() == 2 || u.chars().nth(2) != Some('&'))
                         {
-                            let verse_part = scripture.verse_end.map_or_else(
-                                || format!("{}:{}", scripture.chapter, scripture.verse_start),
-                                |end| {
-                                    format!(
-                                        "{}:{}-{}",
-                                        scripture.chapter, scripture.verse_start, end
+                            let verse_part = scripture.verse_start.map_or_else(
+                                || scripture.chapter.to_string(),
+                                |verse_start| {
+                                    scripture.verse_end.map_or_else(
+                                        || format!("{}:{verse_start}", scripture.chapter),
+                                        |end| format!("{}:{verse_start}-{end}", scripture.chapter),
                                     )
                                 },
                             );
@@ -210,8 +220,8 @@ fn process_text_with_format_impl(
                 // Create a ScriptureReference for the Study Help
                 let scripture = crate::types::ScriptureReference {
                     book: (*book_url).to_string(),
-                    chapter: 1,     // Not used for Study Helps
-                    verse_start: 1, // Not used for Study Helps
+                    chapter: 1,           // Not used for Study Helps
+                    verse_start: Some(1), // Not used for Study Helps
                     verse_end: None,
                     standard_work: standard_work.clone(),
                     topic: Some(topic.clone()),
@@ -322,6 +332,42 @@ mod tests {
         let result = process_text_for_scripture_references(input);
 
         assert!(result.contains("[Isa. 6:5—10]("));
+    }
+
+    #[test]
+    fn test_chapter_only_reference() {
+        let input = "Read Isaiah 29 today.";
+        let result = process_text_for_scripture_references(input);
+
+        assert!(result.contains(
+            "[Isaiah 29](https://www.churchofjesuschrist.org/study/scriptures/ot/isa/29?lang=eng)"
+        ));
+        // No verse-anchor id/fragment for a chapter-only reference
+        assert!(!result.contains("id=p"));
+        assert!(!result.contains('#'));
+    }
+
+    #[test]
+    fn test_chapter_range_reference() {
+        let input = "Read Isaiah 13–14 today.";
+        let result = process_text_for_scripture_references(input);
+
+        // Full matched text (including the en dash) is preserved as link text,
+        // but the URL links to the first chapter only, with no verse anchor.
+        assert!(result.contains(
+            "[Isaiah 13–14](https://www.churchofjesuschrist.org/study/scriptures/ot/isa/13?lang=eng)"
+        ));
+    }
+
+    #[test]
+    fn test_chapter_verse_still_works_alongside_chapter_only() {
+        // A chapter-only match must not steal from a real chapter:verse reference
+        let input = "Isaiah 13:5";
+        let result = process_text_for_scripture_references(input);
+
+        assert!(result.contains(
+            "[Isaiah 13:5](https://www.churchofjesuschrist.org/study/scriptures/ot/isa/13?lang=eng&id=p5#p5)"
+        ));
     }
 
     #[test]

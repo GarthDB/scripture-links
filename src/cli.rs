@@ -116,14 +116,21 @@ impl Cli {
                             OutputFormat::Wikilink => {
                                 let display_name = book_slug_to_display_name(&scripture.book)
                                     .unwrap_or(scripture.book.as_str());
-                                let verse_suffix = scripture.verse_end.map_or_else(
-                                    || scripture.verse_start.to_string(),
-                                    |end| format!("{}-{end}", scripture.verse_start),
-                                );
-                                println!(
-                                    "[[{} {}]]:{verse_suffix}",
-                                    display_name, scripture.chapter
-                                );
+                                match scripture.verse_start {
+                                    Some(verse_start) => {
+                                        let verse_suffix = scripture.verse_end.map_or_else(
+                                            || verse_start.to_string(),
+                                            |end| format!("{verse_start}-{end}"),
+                                        );
+                                        println!(
+                                            "[[{} {}]]:{verse_suffix}",
+                                            display_name, scripture.chapter
+                                        );
+                                    }
+                                    None => {
+                                        println!("[[{} {}]]", display_name, scripture.chapter);
+                                    }
+                                }
                             }
                             OutputFormat::Markdown => {
                                 let url = generate_url(&scripture);
