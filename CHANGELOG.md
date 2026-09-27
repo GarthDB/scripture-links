@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.4](https://github.com/GarthDB/scripture-links/compare/v1.2.3...v1.2.4) - 2026-09-27
+
+### Fixed
+
+- accept en dash and em dash as verse-range separators ([#82](https://github.com/GarthDB/scripture-links/pull/82))
+
+### Other
+
+- *(deps)* bump web-sys from 0.3.91 to 0.3.102 ([#81](https://github.com/GarthDB/scripture-links/pull/81))
+- *(deps)* bump regex from 1.12.3 to 1.12.4 ([#80](https://github.com/GarthDB/scripture-links/pull/80))
+- *(deps)* bump serde_json from 1.0.149 to 1.0.150 ([#77](https://github.com/GarthDB/scripture-links/pull/77))
+- *(deps)* bump clap from 4.6.0 to 4.6.1 ([#73](https://github.com/GarthDB/scripture-links/pull/73))
+- bump softprops/action-gh-release from 2 to 3 ([#72](https://github.com/GarthDB/scripture-links/pull/72))
+- bump actions/upload-pages-artifact from 4 to 5 ([#71](https://github.com/GarthDB/scripture-links/pull/71))
+- bump actions/configure-pages from 5 to 6 ([#69](https://github.com/GarthDB/scripture-links/pull/69))
+- *(deps)* bump proptest from 1.10.0 to 1.11.0 ([#68](https://github.com/GarthDB/scripture-links/pull/68))
+- bump actions/deploy-pages from 4 to 5 ([#67](https://github.com/GarthDB/scripture-links/pull/67))
+- bump codecov/codecov-action from 5 to 6 ([#66](https://github.com/GarthDB/scripture-links/pull/66))
+
 ## [1.2.3](https://github.com/GarthDB/scripture-links/compare/v1.2.2...v1.2.3) - 2026-03-20
 
 ### Fixed
