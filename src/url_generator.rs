@@ -36,8 +36,7 @@ fn topic_to_slug(topic: &str) -> String {
 /// let scripture = ScriptureReference {
 ///     book: "gen".to_string(),
 ///     chapter: 1,
-///     verse_start: Some(1),
-///     verse_end: None,
+///     verses: vec![(1, None)],
 ///     standard_work: StandardWork::OldTestament,
 ///     topic: None,
 /// };
@@ -78,19 +77,26 @@ pub fn generate_url(scripture: &ScriptureReference) -> String {
 
     // Chapter-only references (no verse specified) link to the plain chapter
     // page, with no `id=` param or `#` fragment.
-    let Some(verse_start) = scripture.verse_start else {
+    if scripture.verses.is_empty() {
         return format!(
             "{base_url}/{standard_work_path}/{book_path}/{}?lang=eng",
             scripture.chapter
         );
-    };
+    }
 
-    let id_param = scripture.verse_end.map_or_else(
-        || format!("p{verse_start}"),
-        |end_verse| format!("p{verse_start}-{end_verse}"),
-    );
+    // Multiple verse ranges join into a single comma-separated `id=` param
+    // (matches churchofjesuschrist.org's own convention), e.g. `p1-11,p19-22`.
+    // The `#` fragment anchors to the first range's start verse.
+    let id_param = scripture
+        .verses
+        .iter()
+        .map(|(start, end)| {
+            end.map_or_else(|| format!("p{start}"), |end| format!("p{start}-{end}"))
+        })
+        .collect::<Vec<_>>()
+        .join(",");
 
-    let fragment = format!("p{verse_start}");
+    let fragment = format!("p{}", scripture.verses[0].0);
 
     format!(
         "{}/{}/{}/{}?lang=eng&id={}#{}",
@@ -108,8 +114,7 @@ mod tests {
         let scripture = ScriptureReference {
             book: "isa".to_string(),
             chapter: 6,
-            verse_start: Some(5),
-            verse_end: None,
+            verses: vec![(5, None)],
             standard_work: StandardWork::OldTestament,
             topic: None,
         };
@@ -125,8 +130,7 @@ mod tests {
         let scripture = ScriptureReference {
             book: "isa".to_string(),
             chapter: 29,
-            verse_start: None,
-            verse_end: None,
+            verses: vec![],
             standard_work: StandardWork::OldTestament,
             topic: None,
         };
@@ -144,8 +148,7 @@ mod tests {
         let scripture = ScriptureReference {
             book: "2-ne".to_string(),
             chapter: 10,
-            verse_start: Some(14),
-            verse_end: Some(15),
+            verses: vec![(14, Some(15))],
             standard_work: StandardWork::BookOfMormon,
             topic: None,
         };
@@ -157,12 +160,27 @@ mod tests {
     }
 
     #[test]
+    fn test_generate_url_multi_range() {
+        let scripture = ScriptureReference {
+            book: "2-ne".to_string(),
+            chapter: 10,
+            verses: vec![(14, Some(15)), (20, None)],
+            standard_work: StandardWork::BookOfMormon,
+            topic: None,
+        };
+        let url = generate_url(&scripture);
+        assert_eq!(
+            url,
+            "https://www.churchofjesuschrist.org/study/scriptures/bofm/2-ne/10?lang=eng&id=p14-15,p20#p14"
+        );
+    }
+
+    #[test]
     fn test_url_contains_required_components() {
         let scripture = ScriptureReference {
             book: "matt".to_string(),
             chapter: 5,
-            verse_start: Some(3),
-            verse_end: Some(4),
+            verses: vec![(3, Some(4))],
             standard_work: StandardWork::NewTestament,
             topic: None,
         };
@@ -180,8 +198,7 @@ mod tests {
         let topical_guide = ScriptureReference {
             book: "tg".to_string(),
             chapter: 1, // These values are not used for Study Helps
-            verse_start: Some(1),
-            verse_end: None,
+            verses: vec![(1, None)],
             standard_work: StandardWork::StudyHelps,
             topic: Some("faith".to_string()),
         };
@@ -194,8 +211,7 @@ mod tests {
         let bible_dictionary = ScriptureReference {
             book: "bd".to_string(),
             chapter: 1,
-            verse_start: Some(1),
-            verse_end: None,
+            verses: vec![(1, None)],
             standard_work: StandardWork::StudyHelps,
             topic: Some("abraham".to_string()),
         };
@@ -208,8 +224,7 @@ mod tests {
         let jst = ScriptureReference {
             book: "jst".to_string(),
             chapter: 1,
-            verse_start: Some(1),
-            verse_end: None,
+            verses: vec![(1, None)],
             standard_work: StandardWork::StudyHelps,
             topic: None, // JST might not have specific topics
         };
@@ -237,8 +252,7 @@ mod tests {
         let complex_topic = ScriptureReference {
             book: "gs".to_string(),
             chapter: 1,
-            verse_start: Some(1),
-            verse_end: None,
+            verses: vec![(1, None)],
             standard_work: StandardWork::StudyHelps,
             topic: Some("Aaron, Brother of Moses".to_string()),
         };
@@ -254,8 +268,7 @@ mod tests {
         let it_entry = ScriptureReference {
             book: "it".to_string(),
             chapter: 1,
-            verse_start: Some(1),
-            verse_end: None,
+            verses: vec![(1, None)],
             standard_work: StandardWork::StudyHelps,
             topic: Some("Accountability, Age of".to_string()),
         };
@@ -269,8 +282,7 @@ mod tests {
         let it_main = ScriptureReference {
             book: "it".to_string(),
             chapter: 1,
-            verse_start: Some(1),
-            verse_end: None,
+            verses: vec![(1, None)],
             standard_work: StandardWork::StudyHelps,
             topic: None,
         };
@@ -323,8 +335,7 @@ mod tests {
             let scripture = ScriptureReference {
                 book: abbrev.to_string(),
                 chapter: 1,
-                verse_start: Some(1),
-                verse_end: None,
+                verses: vec![(1, None)],
                 standard_work: StandardWork::StudyHelps,
                 topic: Some(topic.replace('-', " ")),
             };
@@ -341,8 +352,7 @@ mod tests {
         let scripture = ScriptureReference {
             book: "bd".to_string(),
             chapter: 1,
-            verse_start: Some(1),
-            verse_end: None,
+            verses: vec![(1, None)],
             standard_work: StandardWork::StudyHelps,
             topic: Some("Aaron's Rod & Staff".to_string()),
         };

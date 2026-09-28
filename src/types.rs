@@ -12,17 +12,36 @@ pub enum OutputFormat {
     Wikilink,
 }
 
+/// A single verse range: `(start, end)` where `end` is `None` for a bare verse.
+pub type VerseRange = (u32, Option<u32>);
+
 /// Represents a parsed scripture reference
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ScriptureReference {
     pub book: String,
     pub chapter: u32,
-    /// `None` for a chapter-only reference (e.g. "Isaiah 29", no verse specified)
-    pub verse_start: Option<u32>,
-    pub verse_end: Option<u32>,
+    /// One or more `(start, end)` verse ranges, e.g. `[(1, Some(11)), (19, Some(22))]`
+    /// for "1-11, 19-22". Empty for a chapter-only reference (e.g. "Isaiah 29", no
+    /// verse specified).
+    pub verses: Vec<VerseRange>,
     pub standard_work: StandardWork,
     /// For Study Helps, this contains the topic/entry name (e.g., "abel", "faith")
     pub topic: Option<String>,
+}
+
+impl ScriptureReference {
+    /// Render the verse ranges as a human-facing suffix, e.g. `"1-11, 19-22"`.
+    /// Empty string for a chapter-only reference.
+    #[must_use]
+    pub fn verse_display(&self) -> String {
+        self.verses
+            .iter()
+            .map(|(start, end)| {
+                end.map_or_else(|| start.to_string(), |end| format!("{start}-{end}"))
+            })
+            .collect::<Vec<_>>()
+            .join(", ")
+    }
 }
 
 /// Standard works of LDS scripture and study helps
@@ -89,16 +108,53 @@ mod tests {
         let reference = ScriptureReference {
             book: "gen".to_string(),
             chapter: 1,
-            verse_start: Some(1),
-            verse_end: None,
+            verses: vec![(1, None)],
             standard_work: StandardWork::OldTestament,
             topic: None,
         };
 
         assert_eq!(reference.book, "gen");
         assert_eq!(reference.chapter, 1);
-        assert_eq!(reference.verse_start, Some(1));
-        assert_eq!(reference.verse_end, None);
+        assert_eq!(reference.verses, vec![(1, None)]);
         assert_eq!(reference.standard_work, StandardWork::OldTestament);
+    }
+
+    #[test]
+    fn test_verse_display() {
+        let single = ScriptureReference {
+            book: "gen".to_string(),
+            chapter: 1,
+            verses: vec![(1, None)],
+            standard_work: StandardWork::OldTestament,
+            topic: None,
+        };
+        assert_eq!(single.verse_display(), "1");
+
+        let range = ScriptureReference {
+            book: "gen".to_string(),
+            chapter: 1,
+            verses: vec![(1, Some(11))],
+            standard_work: StandardWork::OldTestament,
+            topic: None,
+        };
+        assert_eq!(range.verse_display(), "1-11");
+
+        let multi = ScriptureReference {
+            book: "isa".to_string(),
+            chapter: 13,
+            verses: vec![(1, Some(11)), (19, Some(22))],
+            standard_work: StandardWork::OldTestament,
+            topic: None,
+        };
+        assert_eq!(multi.verse_display(), "1-11, 19-22");
+
+        let chapter_only = ScriptureReference {
+            book: "isa".to_string(),
+            chapter: 29,
+            verses: vec![],
+            standard_work: StandardWork::OldTestament,
+            topic: None,
+        };
+        assert_eq!(chapter_only.verse_display(), "");
     }
 }

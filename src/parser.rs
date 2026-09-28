@@ -2,7 +2,7 @@
 
 use crate::abbreviations::create_abbreviation_map;
 use crate::scripture_data;
-use crate::types::{ScriptureReference, StandardWork};
+use crate::types::{ScriptureReference, StandardWork, VerseRange};
 use regex::Regex;
 
 /// Parse a scripture reference string into a structured format
@@ -15,7 +15,7 @@ use regex::Regex;
 /// let result = parse_scripture_reference("Genesis 1:1").unwrap();
 /// assert_eq!(result.book, "gen");
 /// assert_eq!(result.chapter, 1);
-/// assert_eq!(result.verse_start, Some(1));
+/// assert_eq!(result.verses, vec![(1, None)]);
 /// ```
 ///
 /// # Errors
@@ -30,13 +30,18 @@ pub fn parse_scripture_reference(reference: &str) -> Result<ScriptureReference, 
     // Regex to match scripture references with optional verse ranges, or a bare
     // chapter/chapter-range with no verse at all.
     // Examples: "Isa. 6:5", "Isa.6:5", "2 Ne. 10:14-15", "2Ne.10:14-15", "D&C 128:22-23",
-    // "Isaiah 29" (chapter only), "Isaiah 13-14" (chapter range)
+    // "Isaiah 29" (chapter only), "Isaiah 13-14" (chapter range),
+    // "Isaiah 13:1-11, 19-22" (comma-separated verse list)
     // This regex captures everything before the chapter pattern as the book
     // The \s* makes the space between book and chapter optional
-    // Group 2 = chapter, group 3 = verse_start (optional), group 4 = verse_end (optional).
+    // Group 2 = chapter, group 3 = verse_start (optional), group 4 = verse_end (optional),
+    // group 5 = trailing comma-separated verse list (optional, e.g. ", 19-22, 25").
     // The `[-–—]\d+` alternative matches a chapter range's second chapter number, which
     // is intentionally discarded (only the first chapter drives the URL).
-    let re = Regex::new(r"^(.+?)\s*(\d+)(?::(\d+)(?:[-–—](\d+))?|[-–—]\d+)?$").unwrap();
+    let re = Regex::new(
+        r"^(.+?)\s*(\d+)(?::(\d+)(?:[-–—](\d+))?((?:\s*,\s*\d+(?:[-–—]\d+)?)*)|[-–—]\d+)?$",
+    )
+    .unwrap();
 
     if let Some(captures) = re.captures(reference.trim()) {
         let book_abbrev = captures
@@ -54,6 +59,21 @@ pub fn parse_scripture_reference(reference: &str) -> Result<ScriptureReference, 
         let verse_start: Option<u32> = captures.get(3).and_then(|m| m.as_str().parse().ok());
         let verse_end: Option<u32> = captures.get(4).and_then(|m| m.as_str().parse().ok());
 
+        // Build the list of verse ranges: the first range (if any), followed by
+        // each additional ", N[-M]" item from the trailing comma list.
+        let mut verses: Vec<VerseRange> = Vec::new();
+        if let Some(start) = verse_start {
+            verses.push((start, verse_end));
+        }
+        if let Some(extra) = captures.get(5) {
+            let item_re = Regex::new(r"(\d+)(?:[-–—](\d+))?").unwrap();
+            for item in item_re.captures_iter(extra.as_str()) {
+                let start: u32 = item.get(1).unwrap().as_str().parse().unwrap();
+                let end: Option<u32> = item.get(2).and_then(|m| m.as_str().parse().ok());
+                verses.push((start, end));
+            }
+        }
+
         // Case-insensitive lookup
         let lookup_result = abbreviations
             .iter()
@@ -64,16 +84,15 @@ pub fn parse_scripture_reference(reference: &str) -> Result<ScriptureReference, 
             // Validate chapter range
             scripture_data::validate_chapter_range(book_url, chapter)?;
 
-            // Validate verse range (only when a verse was actually specified)
-            if let Some(start) = verse_start {
-                scripture_data::validate_verse_range(book_url, chapter, start, verse_end)?;
+            // Validate every verse range (only when verses were actually specified)
+            for &(start, end) in &verses {
+                scripture_data::validate_verse_range(book_url, chapter, start, end)?;
             }
 
             Ok(ScriptureReference {
                 book: (*book_url).to_string(),
                 chapter,
-                verse_start,
-                verse_end,
+                verses,
                 standard_work: match standard_work {
                     StandardWork::OldTestament => StandardWork::OldTestament,
                     StandardWork::NewTestament => StandardWork::NewTestament,
@@ -124,8 +143,7 @@ mod tests {
         let result = parse_scripture_reference("Isa. 6:5").unwrap();
         assert_eq!(result.book, "isa");
         assert_eq!(result.chapter, 6);
-        assert_eq!(result.verse_start, Some(5));
-        assert_eq!(result.verse_end, None);
+        assert_eq!(result.verses, vec![(5, None)]);
     }
 
     #[test]
@@ -133,7 +151,7 @@ mod tests {
         let result = parse_scripture_reference("Jer. 23:5").unwrap();
         assert_eq!(result.book, "jer");
         assert_eq!(result.chapter, 23);
-        assert_eq!(result.verse_start, Some(5));
+        assert_eq!(result.verses, vec![(5, None)]);
     }
 
     #[test]
@@ -141,8 +159,7 @@ mod tests {
         let result = parse_scripture_reference("2 Ne. 10:14-15").unwrap();
         assert_eq!(result.book, "2-ne");
         assert_eq!(result.chapter, 10);
-        assert_eq!(result.verse_start, Some(14));
-        assert_eq!(result.verse_end, Some(15));
+        assert_eq!(result.verses, vec![(14, Some(15))]);
     }
 
     #[test]
@@ -150,8 +167,7 @@ mod tests {
         let result = parse_scripture_reference("Isa. 6:5–10").unwrap();
         assert_eq!(result.book, "isa");
         assert_eq!(result.chapter, 6);
-        assert_eq!(result.verse_start, Some(5));
-        assert_eq!(result.verse_end, Some(10));
+        assert_eq!(result.verses, vec![(5, Some(10))]);
     }
 
     #[test]
@@ -159,8 +175,7 @@ mod tests {
         let result = parse_scripture_reference("Isaiah 14:4—20").unwrap();
         assert_eq!(result.book, "isa");
         assert_eq!(result.chapter, 14);
-        assert_eq!(result.verse_start, Some(4));
-        assert_eq!(result.verse_end, Some(20));
+        assert_eq!(result.verses, vec![(4, Some(20))]);
     }
 
     #[test]
@@ -168,8 +183,23 @@ mod tests {
         let result = parse_scripture_reference("D&C 128:22-23").unwrap();
         assert_eq!(result.book, "dc");
         assert_eq!(result.chapter, 128);
-        assert_eq!(result.verse_start, Some(22));
-        assert_eq!(result.verse_end, Some(23));
+        assert_eq!(result.verses, vec![(22, Some(23))]);
+    }
+
+    #[test]
+    fn test_parse_comma_separated_verse_list() {
+        let result = parse_scripture_reference("Isaiah 13:1-11, 19-22").unwrap();
+        assert_eq!(result.book, "isa");
+        assert_eq!(result.chapter, 13);
+        assert_eq!(result.verses, vec![(1, Some(11)), (19, Some(22))]);
+    }
+
+    #[test]
+    fn test_parse_comma_separated_verse_list_with_bare_verses() {
+        // Extra items need not be ranges; bare verse numbers are also allowed.
+        let result = parse_scripture_reference("Isaiah 13:1, 3, 5-7").unwrap();
+        assert_eq!(result.chapter, 13);
+        assert_eq!(result.verses, vec![(1, None), (3, None), (5, Some(7))]);
     }
 
     #[test]
@@ -178,19 +208,19 @@ mod tests {
         let result = parse_scripture_reference("2 Nephi 10:14").unwrap();
         assert_eq!(result.book, "2-ne");
         assert_eq!(result.chapter, 10);
-        assert_eq!(result.verse_start, Some(14));
+        assert_eq!(result.verses, vec![(14, None)]);
 
         // Test Old Testament full names
         let result = parse_scripture_reference("Genesis 1:1").unwrap();
         assert_eq!(result.book, "gen");
         assert_eq!(result.chapter, 1);
-        assert_eq!(result.verse_start, Some(1));
+        assert_eq!(result.verses, vec![(1, None)]);
 
         // Test New Testament full names
         let result = parse_scripture_reference("Matthew 5:3").unwrap();
         assert_eq!(result.book, "matt");
         assert_eq!(result.chapter, 5);
-        assert_eq!(result.verse_start, Some(3));
+        assert_eq!(result.verses, vec![(3, None)]);
     }
 
     #[test]
@@ -199,27 +229,27 @@ mod tests {
         let result1 = parse_scripture_reference("D&C 1:1").unwrap();
         assert_eq!(result1.book, "dc");
         assert_eq!(result1.chapter, 1);
-        assert_eq!(result1.verse_start, Some(1));
+        assert_eq!(result1.verses, vec![(1, None)]);
 
         let result2 = parse_scripture_reference("Doctrine and Covenants 1:1").unwrap();
         assert_eq!(result2.book, "dc");
         assert_eq!(result2.chapter, 1);
-        assert_eq!(result2.verse_start, Some(1));
+        assert_eq!(result2.verses, vec![(1, None)]);
 
         let result3 = parse_scripture_reference("Doctrine & Covenants 1:1").unwrap();
         assert_eq!(result3.book, "dc");
         assert_eq!(result3.chapter, 1);
-        assert_eq!(result3.verse_start, Some(1));
+        assert_eq!(result3.verses, vec![(1, None)]);
 
         let result4 = parse_scripture_reference("DC 88:1").unwrap();
         assert_eq!(result4.book, "dc");
         assert_eq!(result4.chapter, 88);
-        assert_eq!(result4.verse_start, Some(1));
+        assert_eq!(result4.verses, vec![(1, None)]);
 
         let result5 = parse_scripture_reference("DC 121:41").unwrap();
         assert_eq!(result5.book, "dc");
         assert_eq!(result5.chapter, 121);
-        assert_eq!(result5.verse_start, Some(41));
+        assert_eq!(result5.verses, vec![(41, None)]);
     }
 
     #[test]
@@ -237,7 +267,7 @@ mod tests {
         let result4 = parse_scripture_reference("2 nephi 10:14").unwrap();
         assert_eq!(result4.book, "2-ne");
         assert_eq!(result4.chapter, 10);
-        assert_eq!(result4.verse_start, Some(14));
+        assert_eq!(result4.verses, vec![(14, None)]);
     }
 
     #[test]
@@ -247,7 +277,7 @@ mod tests {
         let result2 = parse_scripture_reference("Genesis1:1").unwrap();
         assert_eq!(result1.book, result2.book);
         assert_eq!(result1.chapter, result2.chapter);
-        assert_eq!(result1.verse_start, result2.verse_start);
+        assert_eq!(result1.verses, result2.verses);
     }
 
     #[test]
@@ -257,19 +287,19 @@ mod tests {
         let result2 = parse_scripture_reference("Philip 4:13").unwrap();
         assert_eq!(result1.book, result2.book);
         assert_eq!(result1.chapter, result2.chapter);
-        assert_eq!(result1.verse_start, result2.verse_start);
+        assert_eq!(result1.verses, result2.verses);
 
         let result3 = parse_scripture_reference("Rev. 22:21").unwrap();
         let result4 = parse_scripture_reference("Rev 22:21").unwrap();
         assert_eq!(result3.book, result4.book);
         assert_eq!(result3.chapter, result4.chapter);
-        assert_eq!(result3.verse_start, result4.verse_start);
+        assert_eq!(result3.verses, result4.verses);
 
         let result5 = parse_scripture_reference("Heb. 1:1").unwrap();
         let result6 = parse_scripture_reference("Heb 1:1").unwrap();
         assert_eq!(result5.book, result6.book);
         assert_eq!(result5.chapter, result6.chapter);
-        assert_eq!(result5.verse_start, result6.verse_start);
+        assert_eq!(result5.verses, result6.verses);
     }
 
     #[test]
@@ -347,8 +377,7 @@ mod tests {
         let result = parse_scripture_reference("Isaiah 29").unwrap();
         assert_eq!(result.book, "isa");
         assert_eq!(result.chapter, 29);
-        assert_eq!(result.verse_start, None);
-        assert_eq!(result.verse_end, None);
+        assert_eq!(result.verses, vec![]);
     }
 
     #[test]
@@ -358,12 +387,11 @@ mod tests {
         let result = parse_scripture_reference("Isaiah 13–14").unwrap();
         assert_eq!(result.book, "isa");
         assert_eq!(result.chapter, 13);
-        assert_eq!(result.verse_start, None);
-        assert_eq!(result.verse_end, None);
+        assert_eq!(result.verses, vec![]);
 
         let result = parse_scripture_reference("Isaiah 13-14").unwrap();
         assert_eq!(result.chapter, 13);
-        assert_eq!(result.verse_start, None);
+        assert_eq!(result.verses, vec![]);
     }
 
     #[test]
@@ -371,7 +399,6 @@ mod tests {
         // A chapter-only match must not steal from a real chapter:verse reference
         let result = parse_scripture_reference("Isaiah 13:5").unwrap();
         assert_eq!(result.chapter, 13);
-        assert_eq!(result.verse_start, Some(5));
-        assert_eq!(result.verse_end, None);
+        assert_eq!(result.verses, vec![(5, None)]);
     }
 }
