@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0](https://github.com/GarthDB/scripture-links/compare/v1.2.4...v2.0.0) - 2026-09-28
+
+### Added
+
+- link implied-book references in lists ([#89](https://github.com/GarthDB/scripture-links/pull/89))
+- support comma-separated verse lists ([#85](https://github.com/GarthDB/scripture-links/pull/85)) ([#87](https://github.com/GarthDB/scripture-links/pull/87))
+
 ## [1.2.4](https://github.com/GarthDB/scripture-links/compare/v1.2.3...v1.2.4) - 2026-09-27
 
 ### Fixed
