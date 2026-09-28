@@ -114,10 +114,37 @@ fn process_text_with_format_impl(
         let pattern =
             format!(r"\b({book_pattern})\s*\.?\s*(\d+)(?::(\d+)(?:[-–—](\d+))?|[-–—]\d+)?\b");
         let re = Regex::new(&pattern).unwrap();
+        // A single trailing ", N[-M]" comma-list item following a base match.
+        let comma_item_re = Regex::new(r"^\s*,\s*(\d+)(?:[-–—]\d+)?").unwrap();
+        // Detects a new book reference starting at a position, so the comma
+        // guard below stops extending when the next item is really the start
+        // of a different scripture reference (e.g. "1:1, 2 Nephi 3:4").
+        let new_ref_re = Regex::new(&format!(r"^({book_pattern})\b")).unwrap();
 
         let matches: Vec<_> = re
             .find_iter(&result)
-            .map(|m| (m.range(), m.as_str().to_string()))
+            .map(|m| {
+                // ponytail: extend the base match forward over trailing
+                // ", N[-M]" comma-list items (e.g. "Isaiah 13:1-11, 19-22"),
+                // stopping as soon as the next item would actually start a new
+                // book reference (so "Genesis 1:1, 2 Nephi 3:4" stays two
+                // separate references). Accepted ceiling: "1:1, 2 things" still
+                // reads "2" as a verse, matching churchofjesuschrist.org's own
+                // convention — only a real book name stops the extension.
+                let mut end = m.end();
+                while let Some(item) = comma_item_re.captures(&result[end..]) {
+                    let full = item.get(0).unwrap();
+                    let number = item.get(1).unwrap();
+                    let number_pos = end + number.start();
+                    if new_ref_re.is_match(&result[number_pos..]) {
+                        break;
+                    }
+                    end += full.end();
+                }
+                let range = m.start()..end;
+                let matched_text = result[range.clone()].to_string();
+                (range, matched_text)
+            })
             .collect();
 
         // Process matches in reverse order to preserve indices
@@ -141,16 +168,15 @@ fn process_text_with_format_impl(
                     OutputFormat::Wikilink => {
                         let display_name = book_slug_to_display_name(&scripture.book)
                             .unwrap_or(scripture.book.as_str());
-                        scripture.verse_start.map_or_else(
-                            || format!("[[{display_name} {}]]", scripture.chapter),
-                            |verse_start| {
-                                let verse_suffix = scripture.verse_end.map_or_else(
-                                    || verse_start.to_string(),
-                                    |end| format!("{verse_start}-{end}"),
-                                );
-                                format!("[[{display_name} {}]]:{verse_suffix}", scripture.chapter)
-                            },
-                        )
+                        if scripture.verses.is_empty() {
+                            format!("[[{display_name} {}]]", scripture.chapter)
+                        } else {
+                            format!(
+                                "[[{display_name} {}]]:{}",
+                                scripture.chapter,
+                                scripture.verse_display()
+                            )
+                        }
                     }
                     OutputFormat::Markdown => {
                         let url = generate_url(&scripture);
@@ -162,15 +188,11 @@ fn process_text_with_format_impl(
                             && u.get(0..2) == Some("DC")
                             && (u.len() == 2 || u.chars().nth(2) != Some('&'))
                         {
-                            let verse_part = scripture.verse_start.map_or_else(
-                                || scripture.chapter.to_string(),
-                                |verse_start| {
-                                    scripture.verse_end.map_or_else(
-                                        || format!("{}:{verse_start}", scripture.chapter),
-                                        |end| format!("{}:{verse_start}-{end}", scripture.chapter),
-                                    )
-                                },
-                            );
+                            let verse_part = if scripture.verses.is_empty() {
+                                scripture.chapter.to_string()
+                            } else {
+                                format!("{}:{}", scripture.chapter, scripture.verse_display())
+                            };
                             format!("D&C {verse_part}")
                         } else {
                             matched_text.clone()
@@ -220,9 +242,8 @@ fn process_text_with_format_impl(
                 // Create a ScriptureReference for the Study Help
                 let scripture = crate::types::ScriptureReference {
                     book: (*book_url).to_string(),
-                    chapter: 1,           // Not used for Study Helps
-                    verse_start: Some(1), // Not used for Study Helps
-                    verse_end: None,
+                    chapter: 1,              // Not used for Study Helps
+                    verses: vec![(1, None)], // Not used for Study Helps
                     standard_work: standard_work.clone(),
                     topic: Some(topic.clone()),
                 };
@@ -263,6 +284,27 @@ mod tests {
         assert!(result.contains("[2 Nephi 10:14]("));
         assert!(result.contains("[D&C 128:22-23]("));
         assert!(result.contains("for insights."));
+    }
+
+    #[test]
+    fn test_process_text_comma_separated_verse_list() {
+        // A trailing comma-list extends the match into a single reference/link.
+        let input = "Read Isaiah 13:1-11, 19-22 today.";
+        let result = process_text_for_scripture_references(input);
+        assert!(result.contains(
+            "[Isaiah 13:1-11, 19-22](https://www.churchofjesuschrist.org/study/scriptures/ot/isa/13?lang=eng&id=p1-11,p19-22#p1)"
+        ));
+        assert!(result.contains("today."));
+    }
+
+    #[test]
+    fn test_process_text_comma_list_guard_stops_at_new_book() {
+        // The comma extension must not swallow a following book reference.
+        let input = "Read Genesis 1:1, 2 Nephi 3:4 today.";
+        let result = process_text_for_scripture_references(input);
+        assert!(result.contains("[Genesis 1:1]("));
+        assert!(result.contains("[2 Nephi 3:4]("));
+        assert!(!result.contains("1:1, 2 Nephi 3:4]("));
     }
 
     #[test]

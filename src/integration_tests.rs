@@ -17,8 +17,7 @@ mod tests {
             let scripture = ScriptureReference {
                 book: "gen".to_string(),
                 chapter,
-                verse_start: Some(verse_start),
-                verse_end,
+                verses: vec![(verse_start, verse_end)],
                 standard_work: StandardWork::OldTestament,
                 topic: None,
             };

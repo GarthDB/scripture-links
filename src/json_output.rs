@@ -165,8 +165,7 @@ mod tests {
         let scripture = ScriptureReference {
             book: "gen".to_string(),
             chapter: 1,
-            verse_start: Some(1),
-            verse_end: None,
+            verses: vec![(1, None)],
             standard_work: StandardWork::OldTestament,
             topic: None,
         };
@@ -271,8 +270,7 @@ mod tests {
             parsed: Some(ScriptureReference {
                 book: "gen".to_string(),
                 chapter: 1,
-                verse_start: Some(1),
-                verse_end: None,
+                verses: vec![(1, None)],
                 topic: None,
                 standard_work: StandardWork::OldTestament,
             }),
