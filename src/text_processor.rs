@@ -106,6 +106,12 @@ fn process_text_with_format_impl(
 
     // Process regular scripture references (chapter:verse pattern)
     if !scripture_patterns.is_empty() {
+        struct ScriptureMatch {
+            range: std::ops::Range<usize>,
+            matched_text: String,
+            reference_text: String,
+        }
+
         let book_pattern = scripture_patterns.join("|");
         // Matches "Book Chapter:Verse[-Verse]" or a bare "Book Chapter[-Chapter]"
         // (chapter-only reference, e.g. "Isaiah 29" or "Isaiah 13-14"). The
@@ -115,40 +121,94 @@ fn process_text_with_format_impl(
             format!(r"\b({book_pattern})\s*\.?\s*(\d+)(?::(\d+)(?:[-–—](\d+))?|[-–—]\d+)?\b");
         let re = Regex::new(&pattern).unwrap();
         // A single trailing ", N[-M]" comma-list item following a base match.
-        let comma_item_re = Regex::new(r"^\s*,\s*(\d+)(?:[-–—]\d+)?").unwrap();
+        let comma_item_re = Regex::new(r"^[ \t]*,[ \t]*(\d+)(?:[-–—]\d+)?").unwrap();
+        let continuation_separator_re = Regex::new(r"^[ \t]*([;,])[ \t]*").unwrap();
+        let continuation_item_re =
+            Regex::new(r"^(\d+)(?::(\d+)(?:[-–—](\d+))?|[-–—]\d+)?\b").unwrap();
         // Detects a new book reference starting at a position, so the comma
         // guard below stops extending when the next item is really the start
         // of a different scripture reference (e.g. "1:1, 2 Nephi 3:4").
         let new_ref_re = Regex::new(&format!(r"^({book_pattern})\b")).unwrap();
+        let extend_comma_list = |mut end: usize| {
+            while let Some(item) = comma_item_re.captures(&result[end..]) {
+                let full = item.get(0).unwrap();
+                let number = item.get(1).unwrap();
+                let number_pos = end + number.start();
+                let after_number = number_pos + number.as_str().len();
+                if result
+                    .get(after_number..)
+                    .is_some_and(|rest| rest.starts_with(':'))
+                    || new_ref_re.is_match(&result[number_pos..])
+                {
+                    break;
+                }
+                end += full.end();
+            }
+            end
+        };
 
         let matches: Vec<_> = re
-            .find_iter(&result)
-            .map(|m| {
-                // ponytail: extend the base match forward over trailing
-                // ", N[-M]" comma-list items (e.g. "Isaiah 13:1-11, 19-22"),
-                // stopping as soon as the next item would actually start a new
-                // book reference (so "Genesis 1:1, 2 Nephi 3:4" stays two
-                // separate references). Accepted ceiling: "1:1, 2 things" still
-                // reads "2" as a verse, matching churchofjesuschrist.org's own
-                // convention — only a real book name stops the extension.
-                let mut end = m.end();
-                while let Some(item) = comma_item_re.captures(&result[end..]) {
-                    let full = item.get(0).unwrap();
-                    let number = item.get(1).unwrap();
-                    let number_pos = end + number.start();
-                    if new_ref_re.is_match(&result[number_pos..]) {
+            .captures_iter(&result)
+            .flat_map(|captures| {
+                let m = captures.get(0).unwrap();
+                let book = captures.get(1).unwrap().as_str().to_string();
+
+                // Extend a match over trailing comma-separated verse ranges,
+                // but do not consume the chapter of a comma-separated
+                // continuation such as ", 24:21-23".
+                let end = extend_comma_list(m.end());
+
+                let base_range = m.start()..end;
+                let base_text = result[base_range.clone()].to_string();
+                let mut found = vec![ScriptureMatch {
+                    range: base_range,
+                    matched_text: base_text.clone(),
+                    reference_text: base_text,
+                }];
+
+                // Continue over adjacent semicolon-separated references that
+                // omit the book name. A comma is accepted only when the item
+                // contains a colon, leaving #85's comma verse-list behavior
+                // unchanged for bare verse numbers.
+                let mut cursor = end;
+                while let Some(separator) = continuation_separator_re.captures(&result[cursor..]) {
+                    let separator_match = separator.get(0).unwrap();
+                    let separator_kind = separator.get(1).unwrap().as_str();
+                    let item_start = cursor + separator_match.end();
+                    let Some(item) = continuation_item_re.captures(&result[item_start..]) else {
+                        break;
+                    };
+                    if separator_kind == "," && item.get(2).is_none() {
                         break;
                     }
-                    end += full.end();
+                    if new_ref_re.is_match(&result[item_start..]) {
+                        break;
+                    }
+
+                    let item_match = item.get(0).unwrap();
+                    let item_range_start = item_start;
+                    let item_end = extend_comma_list(item_start + item_match.end());
+
+                    let item_text = result[item_range_start..item_end].to_string();
+                    found.push(ScriptureMatch {
+                        range: item_range_start..item_end,
+                        matched_text: item_text.clone(),
+                        reference_text: format!("{book} {item_text}"),
+                    });
+                    cursor = item_end;
                 }
-                let range = m.start()..end;
-                let matched_text = result[range.clone()].to_string();
-                (range, matched_text)
+
+                found
             })
             .collect();
 
         // Process matches in reverse order to preserve indices
-        for (range, matched_text) in matches.into_iter().rev() {
+        for ScriptureMatch {
+            range,
+            matched_text,
+            reference_text,
+        } in matches.into_iter().rev()
+        {
             // Skip if already inside [[wikilink]] (avoid double-converting)
             if range.start >= 2
                 && result.get(range.start.saturating_sub(2)..range.start) == Some("[[")
@@ -163,7 +223,7 @@ fn process_text_with_format_impl(
                 continue;
             }
             // Try to parse this as a scripture reference
-            if let Ok(scripture) = parse_scripture_reference(&matched_text) {
+            if let Ok(scripture) = parse_scripture_reference(&reference_text) {
                 let replacement = match format {
                     OutputFormat::Wikilink => {
                         let display_name = book_slug_to_display_name(&scripture.book)
@@ -183,7 +243,8 @@ fn process_text_with_format_impl(
                         // Normalize DC to D&C in link text when user wrote DC (no ampersand)
                         let trimmed = matched_text.trim();
                         let u = trimmed.to_uppercase();
-                        let link_text = if scripture.book == "dc"
+                        let link_text = if reference_text == matched_text
+                            && scripture.book == "dc"
                             && u.len() >= 2
                             && u.get(0..2) == Some("DC")
                             && (u.len() == 2 || u.chars().nth(2) != Some('&'))
@@ -305,6 +366,81 @@ mod tests {
         assert!(result.contains("[Genesis 1:1]("));
         assert!(result.contains("[2 Nephi 3:4]("));
         assert!(!result.contains("1:1, 2 Nephi 3:4]("));
+    }
+
+    #[test]
+    fn test_process_text_semicolon_list_infers_book_name() {
+        let input = "Isaiah 22:22-23; 24:21-23; 25:6-8";
+        let result = process_text_for_scripture_references(input);
+
+        assert!(result.contains("[Isaiah 22:22-23](https://"));
+        assert!(result.contains("[24:21-23](https://www.churchofjesuschrist.org/study/scriptures/ot/isa/24?lang=eng&id=p21-23#p21)"));
+        assert!(result.contains("[25:6-8](https://www.churchofjesuschrist.org/study/scriptures/ot/isa/25?lang=eng&id=p6-8#p6)"));
+        assert!(!result.contains("[Isaiah 24:21-23]("));
+    }
+
+    #[test]
+    fn test_process_text_semicolon_list_stops_at_new_book() {
+        let input = "Isaiah 22:22-23; Alma 5:1";
+        let result = process_text_for_scripture_references(input);
+
+        assert!(result.contains("[Isaiah 22:22-23]("));
+        assert!(result.contains("[Alma 5:1]("));
+        assert!(
+            !result.contains(
+                "[Alma 5:1](https://www.churchofjesuschrist.org/study/scriptures/ot/isa/"
+            )
+        );
+    }
+
+    #[test]
+    fn test_process_text_semicolon_list_does_not_cross_sentence_boundary() {
+        let input = "Isaiah 22:22-23. See also 24:21-23.";
+        let result = process_text_for_scripture_references(input);
+
+        assert!(result.contains("[Isaiah 22:22-23]("));
+        assert!(result.contains("See also 24:21-23."));
+    }
+
+    #[test]
+    fn test_process_text_semicolon_list_supports_chapter_only_and_ranges() {
+        let input = "Isaiah 22:22-23; 24; 25–26";
+        let result = process_text_for_scripture_references(input);
+
+        assert!(result.contains(
+            "[24](https://www.churchofjesuschrist.org/study/scriptures/ot/isa/24?lang=eng)"
+        ));
+        assert!(result.contains(
+            "[25–26](https://www.churchofjesuschrist.org/study/scriptures/ot/isa/25?lang=eng)"
+        ));
+    }
+
+    #[test]
+    fn test_process_text_comma_colon_list_infers_book_name() {
+        let input = "Isaiah 22:22-23, 24:21-23";
+        let result = process_text_for_scripture_references(input);
+
+        assert!(result.contains("[Isaiah 22:22-23]("));
+        assert!(result.contains("[24:21-23](https://www.churchofjesuschrist.org/study/scriptures/ot/isa/24?lang=eng&id=p21-23#p21)"));
+    }
+
+    #[test]
+    fn test_process_text_semicolon_list_does_not_cross_newline() {
+        let input = "Isaiah 22:22-23;\n24:21-23";
+        let result = process_text_for_scripture_references(input);
+
+        assert!(result.contains("[Isaiah 22:22-23]("));
+        assert!(result.contains("24:21-23"));
+        assert!(!result.contains("[24:21-23]("));
+    }
+
+    #[test]
+    fn test_process_text_semicolon_list_wikilink_expands_book_name() {
+        let input = "Isaiah 22:22-23; 24:21-23";
+        let result = process_text_with_format(input, OutputFormat::Wikilink, false);
+
+        assert!(result.contains("[[Isaiah 22]]:22-23"));
+        assert!(result.contains("[[Isaiah 24]]:21-23"));
     }
 
     #[test]

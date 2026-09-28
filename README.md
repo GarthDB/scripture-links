@@ -15,6 +15,7 @@ A Rust command-line tool that converts scripture references into links to [Churc
 - 📁 **File Processing**: Process entire files (markdown, text, etc.)
 - ✅ **Comprehensive Validation**: Chapter and verse range checking
 - 🔤 **Multiple Formats**: Full names, abbreviations, case-insensitive
+- 📑 **Reference Lists**: Semicolon-separated references may omit repeated book names
 - 📚 **All Standard Works**: Old Testament, New Testament, Book of Mormon, D&C, Pearl of Great Price
 
 ## Installation
