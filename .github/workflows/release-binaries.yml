@@ -40,7 +40,7 @@ jobs:
             name: scripture-links-x86_64-pc-windows-msvc.zip
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.RELEASE_TAG }}
 
@@ -105,12 +105,12 @@ jobs:
       contents: write
     steps:
       - name: Checkout Main Repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.RELEASE_TAG }}
 
       - name: Checkout Homebrew Tap
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: GarthDB/homebrew-scripture-links
           token: ${{ secrets.HOMEBREW_PAT }}
